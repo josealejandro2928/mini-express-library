@@ -1,7 +1,7 @@
 {
   "name": "mini-express-library",
   "version": "1.0.0",
-  "description": "A short implementation of a web server based in express architecture",
+  "description": "A short implementation of a web server based in express architecture using build-in node modules",
   "main": "index.js",
   "scripts": {
     "build": "rm -rf ./build && tsc -p ./config/tsconfig.cjs.json",
