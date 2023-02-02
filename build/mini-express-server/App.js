@@ -157,6 +157,7 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
         __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_errorHandler).call(this, req, res, error);
     }
     else {
-        res.status(error.code || 500).text(error.message);
+        let code = (error === null || error === void 0 ? void 0 : error.code) && typeof (error === null || error === void 0 ? void 0 : error.code) == "number" ? error === null || error === void 0 ? void 0 : error.code : 500;
+        res.status(code).text(error.message);
     }
 };

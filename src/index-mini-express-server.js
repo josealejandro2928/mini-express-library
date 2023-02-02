@@ -17,7 +17,7 @@ app.get(`/api`, logReqMidd, (req, res) => {
 
 app.get(`api/web/:page/`, logReqMidd, (req, res, next) => {
     let page = req.params.page;
-    let pagesRootPath = path.resolve("..", "pages");
+    let pagesRootPath = path.resolve("pages");
     fs.readdir(pagesRootPath, { encoding: "utf8" }, (err, files) => {
         if (err) {
             next(err);

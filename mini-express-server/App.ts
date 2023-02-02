@@ -161,7 +161,8 @@ export class AppServer {
     if (this.errorHandler) {
       this.#errorHandler(req, res, error);
     } else {
-      res.status((error as ServerError).code || 500).text(error.message);
+      let code = (error as any)?.code && typeof (error as any)?.code == "number" ? (error as any)?.code : 500 
+      res.status(code).text(error.message);
     }
   }
 }
