@@ -25,5 +25,6 @@ export interface IResponse extends ServerResponse {
 export type IMiddleware = (req: IRequest, res: IResponse, next?: (error?: any) => any) => any;
 export declare class ServerError extends Error {
     code: number;
-    constructor(code: number, message: string);
+    meta: any[];
+    constructor(code: number, message: string, meta: []);
 }

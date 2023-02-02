@@ -138,14 +138,21 @@ export class AppServer {
     if (handlersCb.length == 0) {
       return res.status(400).text("Not found");
     }
-    let nextFunction = (error?: any) => {
+    let nextFunction = async (error?: any) => {
       if (error) {
         this.#errorHandler(req, res, error);
       } else {
         const cb: IMiddleware = handlersCb[index++];
-        Promise.resolve(cb(req, res, nextFunction)).catch(error => {
+        try {
+          await cb(req, res, nextFunction);
+        } catch (error: any) {
+          console.log("Here there is an error");
           this.#errorHandler(req, res, error);
-        });
+        }
+        // Promise.resolve(cb(req, res, nextFunction)).catch(error => {
+        //   console.log("Here there is an error");
+        //   this.#errorHandler(req, res, error);
+        // });
       }
     };
     nextFunction();
@@ -159,9 +166,12 @@ export class AppServer {
 
   #errorHandler(req: IRequest, res: IResponse, error: ServerError | Error) {
     if (this.errorHandler) {
-      this.#errorHandler(req, res, error);
+      this.errorHandler(req, res, error);
     } else {
-      let code = (error as any)?.code && typeof (error as any)?.code == "number" ? (error as any)?.code : 500 
+      let code =
+        (error as any)?.code && typeof (error as any)?.code == "number"
+          ? (error as any)?.code
+          : 500;
       res.status(code).text(error.message);
     }
   }

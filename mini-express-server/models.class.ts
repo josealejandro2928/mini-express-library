@@ -20,8 +20,10 @@ export type IMiddleware = (req: IRequest, res: IResponse, next?: (error?: any) =
 
 export class ServerError extends Error {
   code: number = 0;
-  constructor(code: number, message: string) {
+  meta: any[] = [];
+  constructor(code: number, message: string, meta: []) {
     super(message);
     this.code = code;
+    this.meta = meta;
   }
 }

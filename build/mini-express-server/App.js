@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (receiver, state, kind, f) {
     if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
@@ -140,24 +149,34 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
     if (handlersCb.length == 0) {
         return res.status(400).text("Not found");
     }
-    let nextFunction = (error) => {
+    let nextFunction = (error) => __awaiter(this, void 0, void 0, function* () {
         if (error) {
             __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_errorHandler).call(this, req, res, error);
         }
         else {
             const cb = handlersCb[index++];
-            Promise.resolve(cb(req, res, nextFunction)).catch(error => {
+            try {
+                yield cb(req, res, nextFunction);
+            }
+            catch (error) {
+                console.log("Here there is an error");
                 __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_errorHandler).call(this, req, res, error);
-            });
+            }
+            // Promise.resolve(cb(req, res, nextFunction)).catch(error => {
+            //   console.log("Here there is an error");
+            //   this.#errorHandler(req, res, error);
+            // });
         }
-    };
+    });
     nextFunction();
 }, _AppServer_errorHandler = function _AppServer_errorHandler(req, res, error) {
     if (this.errorHandler) {
-        __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_errorHandler).call(this, req, res, error);
+        this.errorHandler(req, res, error);
     }
     else {
-        let code = (error === null || error === void 0 ? void 0 : error.code) && typeof (error === null || error === void 0 ? void 0 : error.code) == "number" ? error === null || error === void 0 ? void 0 : error.code : 500;
+        let code = (error === null || error === void 0 ? void 0 : error.code) && typeof (error === null || error === void 0 ? void 0 : error.code) == "number"
+            ? error === null || error === void 0 ? void 0 : error.code
+            : 500;
         res.status(code).text(error.message);
     }
 };
