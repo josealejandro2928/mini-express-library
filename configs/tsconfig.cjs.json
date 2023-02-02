@@ -5,6 +5,8 @@
     "target": "ES6",
     "module": "CommonJS",
     "moduleResolution": "Node",
-    "outDir": "../build",
+    "outDir": "../build/cjs",
+    "declarationDir": "../build/cjs/types"
   },
+  "include": ["../lib/index.ts"]
 }

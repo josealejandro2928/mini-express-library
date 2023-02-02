@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IncomingMessage, ServerResponse } from "node:http";
 
 export interface IRequest extends IncomingMessage {
@@ -19,7 +20,7 @@ export interface IResponse extends ServerResponse {
 export type IMiddleware = (req: IRequest, res: IResponse, next?: (error?: any) => any) => any;
 
 export class ServerError extends Error {
-  code: number = 0;
+  code = 0;
   meta: any[] = [];
   constructor(code: number, message: string, meta: []) {
     super(message);

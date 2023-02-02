@@ -19,16 +19,13 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var _AppServer_instances, _AppServer_httpServer, _AppServer_port, _AppServer_mapGetHandlers, _AppServer_mapPostHandlers, _AppServer_mapPutHandlers, _AppServer_mapDeleteHandlers, _AppServer_globalMiddlewares, _AppServer_init, _AppServer_switchRoutes, _AppServer_extendReqRes, _AppServer_getCompositionFromPath, _AppServer_routeMatching, _AppServer_routesHandler, _AppServer_errorHandler;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppServer = void 0;
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const node_http_1 = __importDefault(require("node:http"));
-const node_url_1 = __importDefault(require("node:url"));
-const node_fs_1 = __importDefault(require("node:fs"));
+const node_http_1 = require("node:http");
+const url = require("node:url");
+const fs = require("node:fs");
 class AppServer {
     constructor() {
         _AppServer_instances.add(this);
@@ -99,7 +96,7 @@ class AppServer {
 }
 exports.AppServer = AppServer;
 _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServer_mapGetHandlers = new WeakMap(), _AppServer_mapPostHandlers = new WeakMap(), _AppServer_mapPutHandlers = new WeakMap(), _AppServer_mapDeleteHandlers = new WeakMap(), _AppServer_globalMiddlewares = new WeakMap(), _AppServer_instances = new WeakSet(), _AppServer_init = function _AppServer_init() {
-    __classPrivateFieldSet(this, _AppServer_httpServer, node_http_1.default.createServer((req, res) => {
+    __classPrivateFieldSet(this, _AppServer_httpServer, (0, node_http_1.createServer)((req, res) => {
         let body = "";
         req.on("data", (chunk) => {
             body += chunk;
@@ -131,7 +128,7 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
         resExtended.write("Not allowed");
     }
 }, _AppServer_extendReqRes = function _AppServer_extendReqRes(req, res, body = "") {
-    const parseUrl = node_url_1.default.parse(req.url, true);
+    const parseUrl = url.parse(req.url, true);
     const newRequest = req;
     newRequest.body = body;
     newRequest.query = parseUrl.query;
@@ -155,7 +152,7 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
         res.end();
     };
     newResponse.sendFile = function (pathFile, contentType = "text/html") {
-        const fileReader = node_fs_1.default.createReadStream(pathFile);
+        const fileReader = fs.createReadStream(pathFile);
         res.writeHead(this.statusCode, { "Content-Type": contentType });
         fileReader.pipe(res);
         res.once("finish", () => {
@@ -230,3 +227,4 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
         res.status(code).text(error.message);
     }
 };
+//# sourceMappingURL=AppServer.js.map

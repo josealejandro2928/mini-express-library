@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 ///////////////////////////////////////////////////////////////////////
-const AppServer = require("../build/mini-express-server/index.js").default;
-const { ServerError } = require("../build/mini-express-server/models.class.js");
+const { AppServer, ServerError } = require("mini-express-server");
 const path = require("node:path");
 const fs = require("node:fs");
 const morgan = require("morgan");
@@ -21,6 +20,7 @@ app.use(morgan("common"));
 app.use(cors());
 app.use(helmet());
 app.use(jsonParser);
+
 
 app.get(`/api`, (req, res) => {
     const { query, params, body, headers, context } = req;

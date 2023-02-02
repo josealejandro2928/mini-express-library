@@ -11,3 +11,4 @@ class ServerError extends Error {
     }
 }
 exports.ServerError = ServerError;
+//# sourceMappingURL=models.class.js.map

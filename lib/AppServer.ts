@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import http, { Server, IncomingMessage, ServerResponse } from "node:http";
-import url from "node:url";
-import fs from "node:fs";
+import { Server, IncomingMessage, ServerResponse, createServer } from "node:http";
+import * as url from "node:url";
+import * as fs from "node:fs";
 import { IMiddleware, IRequest, IResponse, ServerError } from "./models.class";
 
 export class AppServer {
@@ -23,7 +23,7 @@ export class AppServer {
   }
 
   #init() {
-    this.#httpServer = http.createServer((req: IncomingMessage, res: ServerResponse) => {
+    this.#httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
       let body = "";
       req.on("data", (chunk: any) => {
         body += chunk;
