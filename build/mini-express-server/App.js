@@ -22,9 +22,10 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _AppServer_instances, _AppServer_httpServer, _AppServer_port, _AppServer_mapGetHandlers, _AppServer_init, _AppServer_switchRoutes, _AppServer_extendReqRes, _AppServer_getCompositionFromPath, _AppServer_routeMatching, _AppServer_getRoutesHandler, _AppServer_errorHandler;
+var _AppServer_instances, _AppServer_httpServer, _AppServer_port, _AppServer_mapGetHandlers, _AppServer_mapPostHandlers, _AppServer_mapPutHandlers, _AppServer_mapDeleteHandlers, _AppServer_init, _AppServer_switchRoutes, _AppServer_extendReqRes, _AppServer_getCompositionFromPath, _AppServer_routeMatching, _AppServer_routesHandler, _AppServer_errorHandler;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppServer = void 0;
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const node_http_1 = __importDefault(require("node:http"));
 const node_url_1 = __importDefault(require("node:url"));
 const node_fs_1 = __importDefault(require("node:fs"));
@@ -34,6 +35,9 @@ class AppServer {
         _AppServer_httpServer.set(this, null);
         _AppServer_port.set(this, 8888);
         _AppServer_mapGetHandlers.set(this, new Map());
+        _AppServer_mapPostHandlers.set(this, new Map());
+        _AppServer_mapPutHandlers.set(this, new Map());
+        _AppServer_mapDeleteHandlers.set(this, new Map());
         __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_init).call(this);
         this.errorHandler = undefined;
     }
@@ -49,12 +53,33 @@ class AppServer {
         }
         (_a = __classPrivateFieldGet(this, _AppServer_mapGetHandlers, "f").get(route)) === null || _a === void 0 ? void 0 : _a.push(...cbs);
     }
+    post(route, ...cbs) {
+        var _a;
+        if (!__classPrivateFieldGet(this, _AppServer_mapPostHandlers, "f").has(route)) {
+            __classPrivateFieldGet(this, _AppServer_mapPostHandlers, "f").set(route, []);
+        }
+        (_a = __classPrivateFieldGet(this, _AppServer_mapPostHandlers, "f").get(route)) === null || _a === void 0 ? void 0 : _a.push(...cbs);
+    }
+    put(route, ...cbs) {
+        var _a;
+        if (!__classPrivateFieldGet(this, _AppServer_mapPutHandlers, "f").has(route)) {
+            __classPrivateFieldGet(this, _AppServer_mapPutHandlers, "f").set(route, []);
+        }
+        (_a = __classPrivateFieldGet(this, _AppServer_mapPutHandlers, "f").get(route)) === null || _a === void 0 ? void 0 : _a.push(...cbs);
+    }
+    delete(route, ...cbs) {
+        var _a;
+        if (!__classPrivateFieldGet(this, _AppServer_mapDeleteHandlers, "f").has(route)) {
+            __classPrivateFieldGet(this, _AppServer_mapDeleteHandlers, "f").set(route, []);
+        }
+        (_a = __classPrivateFieldGet(this, _AppServer_mapDeleteHandlers, "f").get(route)) === null || _a === void 0 ? void 0 : _a.push(...cbs);
+    }
     setErrorHandler(clientErrorHandler) {
         this.errorHandler = clientErrorHandler;
     }
 }
 exports.AppServer = AppServer;
-_AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServer_mapGetHandlers = new WeakMap(), _AppServer_instances = new WeakSet(), _AppServer_init = function _AppServer_init() {
+_AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServer_mapGetHandlers = new WeakMap(), _AppServer_mapPostHandlers = new WeakMap(), _AppServer_mapPutHandlers = new WeakMap(), _AppServer_mapDeleteHandlers = new WeakMap(), _AppServer_instances = new WeakSet(), _AppServer_init = function _AppServer_init() {
     __classPrivateFieldSet(this, _AppServer_httpServer, node_http_1.default.createServer((req, res) => {
         let body = "";
         req.on("data", (chunk) => {
@@ -64,14 +89,23 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
             __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_switchRoutes).call(this, req, res, body);
         });
         req.on("error", error => {
-            res.writeHead(400, { "Content-Type": "text/html" });
+            res.writeHead(500, { "Content-Type": "text/html" });
             res.write(error);
         });
     }), "f");
 }, _AppServer_switchRoutes = function _AppServer_switchRoutes(req, res, body) {
     const { req: reqExtended, res: resExtended } = __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_extendReqRes).call(this, req, res, body);
     if (req.method == "GET") {
-        __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_getRoutesHandler).call(this, reqExtended, resExtended);
+        __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_routesHandler).call(this, reqExtended, resExtended, __classPrivateFieldGet(this, _AppServer_mapGetHandlers, "f"));
+    }
+    else if (req.method == "POST") {
+        __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_routesHandler).call(this, reqExtended, resExtended, __classPrivateFieldGet(this, _AppServer_mapPostHandlers, "f"));
+    }
+    else if (req.method == "PUT") {
+        __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_routesHandler).call(this, reqExtended, resExtended, __classPrivateFieldGet(this, _AppServer_mapPutHandlers, "f"));
+    }
+    else if (req.method == "DELETE") {
+        __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_routesHandler).call(this, reqExtended, resExtended, __classPrivateFieldGet(this, _AppServer_mapDeleteHandlers, "f"));
     }
     else {
         resExtended.writeHead(405, { "Content-Type": "text/html" });
@@ -112,19 +146,19 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
     return { req: newRequest, res: newResponse };
 }, _AppServer_getCompositionFromPath = function _AppServer_getCompositionFromPath(pathStr = "") {
     return pathStr.split("/").filter(x => x != "");
-}, _AppServer_routeMatching = function _AppServer_routeMatching(req, mapHandler = new Map()) {
+}, _AppServer_routeMatching = function _AppServer_routeMatching(req, mapHandler) {
     // this return from an example pathName: /v1/user/1/visit -> ['v1','user','1','visit']
     const reqPathComposition = __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_getCompositionFromPath).call(this, req.pathName);
-    for (let route of mapHandler.keys()) {
+    for (const route of mapHandler.keys()) {
         const routeComposition = __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_getCompositionFromPath).call(this, route);
         if (routeComposition.length != reqPathComposition.length)
             continue;
         let match = true;
-        let params = req.params;
+        const params = req.params;
         for (let i = 0; i < reqPathComposition.length; i++) {
             if (routeComposition[i].startsWith(":")) {
                 // we extract the params defined in the methods as :param
-                let param = routeComposition[i].split(":")[1];
+                const param = routeComposition[i].split(":")[1];
                 params[param] = reqPathComposition[i];
             }
             else {
@@ -143,13 +177,13 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
     }
     // Not route handler found
     return [];
-}, _AppServer_getRoutesHandler = function _AppServer_getRoutesHandler(req, res) {
+}, _AppServer_routesHandler = function _AppServer_routesHandler(req, res, mapHandler) {
     let index = 0;
-    let handlersCb = __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_routeMatching).call(this, req, __classPrivateFieldGet(this, _AppServer_mapGetHandlers, "f"));
+    const handlersCb = __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_routeMatching).call(this, req, mapHandler);
     if (handlersCb.length == 0) {
         return res.status(400).text("Not found");
     }
-    let nextFunction = (error) => __awaiter(this, void 0, void 0, function* () {
+    const nextFunction = (error) => __awaiter(this, void 0, void 0, function* () {
         if (error) {
             __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_errorHandler).call(this, req, res, error);
         }
@@ -162,10 +196,6 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
                 console.log("Here there is an error");
                 __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_errorHandler).call(this, req, res, error);
             }
-            // Promise.resolve(cb(req, res, nextFunction)).catch(error => {
-            //   console.log("Here there is an error");
-            //   this.#errorHandler(req, res, error);
-            // });
         }
     });
     nextFunction();
@@ -174,7 +204,7 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
         this.errorHandler(req, res, error);
     }
     else {
-        let code = (error === null || error === void 0 ? void 0 : error.code) && typeof (error === null || error === void 0 ? void 0 : error.code) == "number"
+        const code = (error === null || error === void 0 ? void 0 : error.code) && typeof (error === null || error === void 0 ? void 0 : error.code) == "number"
             ? error === null || error === void 0 ? void 0 : error.code
             : 500;
         res.status(code).text(error.message);

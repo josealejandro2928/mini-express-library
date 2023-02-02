@@ -5,5 +5,8 @@ export declare class AppServer {
     constructor();
     listen(port?: number, cb?: null): void;
     get(route: string, ...cbs: IMiddleware[]): void;
+    post(route: string, ...cbs: IMiddleware[]): void;
+    put(route: string, ...cbs: IMiddleware[]): void;
+    delete(route: string, ...cbs: IMiddleware[]): void;
     setErrorHandler(clientErrorHandler: (req: IRequest, res: IResponse, error: ServerError | Error | any) => any): void;
 }

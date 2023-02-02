@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import http, { Server, IncomingMessage, ServerResponse } from "node:http";
 import url from "node:url";
 import fs from "node:fs";
@@ -7,13 +8,19 @@ export class AppServer {
   #httpServer: Server<any, any> | undefined | null = null;
   #port = 8888;
   #mapGetHandlers = new Map<string, IMiddleware[]>();
+  #mapPostHandlers = new Map<string, IMiddleware[]>();
+  #mapPutHandlers = new Map<string, IMiddleware[]>();
+  #mapDeleteHandlers = new Map<string, IMiddleware[]>();
+
   errorHandler:
     | ((req: IRequest, res: IResponse, error: ServerError | Error | any) => any)
     | undefined;
+
   constructor() {
     this.#init();
     this.errorHandler = undefined;
   }
+
   #init() {
     this.#httpServer = http.createServer((req: IncomingMessage, res: ServerResponse) => {
       let body = "";
@@ -24,7 +31,7 @@ export class AppServer {
         this.#switchRoutes(req, res, body);
       });
       req.on("error", error => {
-        res.writeHead(400, { "Content-Type": "text/html" });
+        res.writeHead(500, { "Content-Type": "text/html" });
         res.write(error);
       });
     });
@@ -33,7 +40,13 @@ export class AppServer {
   #switchRoutes(req: IncomingMessage, res: ServerResponse, body: any) {
     const { req: reqExtended, res: resExtended } = this.#extendReqRes(req, res, body);
     if (req.method == "GET") {
-      this.#getRoutesHandler(reqExtended, resExtended);
+      this.#routesHandler(reqExtended, resExtended, this.#mapGetHandlers);
+    } else if (req.method == "POST") {
+      this.#routesHandler(reqExtended, resExtended, this.#mapPostHandlers);
+    } else if (req.method == "PUT") {
+      this.#routesHandler(reqExtended, resExtended, this.#mapPutHandlers);
+    } else if (req.method == "DELETE") {
+      this.#routesHandler(reqExtended, resExtended, this.#mapDeleteHandlers);
     } else {
       resExtended.writeHead(405, { "Content-Type": "text/html" });
       resExtended.write("Not allowed");
@@ -96,23 +109,50 @@ export class AppServer {
     this.#mapGetHandlers.get(route)?.push(...cbs);
   }
 
+  post(route: string, ...cbs: IMiddleware[]): void {
+    if (!this.#mapPostHandlers.has(route)) {
+      this.#mapPostHandlers.set(route, []);
+    }
+    this.#mapPostHandlers.get(route)?.push(...cbs);
+  }
+
+  put(route: string, ...cbs: IMiddleware[]): void {
+    if (!this.#mapPutHandlers.has(route)) {
+      this.#mapPutHandlers.set(route, []);
+    }
+    this.#mapPutHandlers.get(route)?.push(...cbs);
+  }
+
+  delete(route: string, ...cbs: IMiddleware[]): void {
+    if (!this.#mapDeleteHandlers.has(route)) {
+      this.#mapDeleteHandlers.set(route, []);
+    }
+    this.#mapDeleteHandlers.get(route)?.push(...cbs);
+  }
+
+  setErrorHandler(
+    clientErrorHandler: (req: IRequest, res: IResponse, error: ServerError | Error | any) => any
+  ) {
+    this.errorHandler = clientErrorHandler;
+  }
+
   #getCompositionFromPath(pathStr = ""): string[] {
     return pathStr.split("/").filter(x => x != "");
   }
 
-  #routeMatching(req: IRequest, mapHandler: Map<string, IMiddleware[]> = new Map()): IMiddleware[] {
+  #routeMatching(req: IRequest, mapHandler: Map<string, IMiddleware[]>): IMiddleware[] {
     // this return from an example pathName: /v1/user/1/visit -> ['v1','user','1','visit']
     const reqPathComposition = this.#getCompositionFromPath(req.pathName);
 
-    for (let route of mapHandler.keys()) {
+    for (const route of mapHandler.keys()) {
       const routeComposition = this.#getCompositionFromPath(route);
       if (routeComposition.length != reqPathComposition.length) continue;
       let match = true;
-      let params: any = req.params;
+      const params: any = req.params;
       for (let i = 0; i < reqPathComposition.length; i++) {
         if (routeComposition[i].startsWith(":")) {
           // we extract the params defined in the methods as :param
-          let param = routeComposition[i].split(":")[1];
+          const param = routeComposition[i].split(":")[1];
           params[param] = reqPathComposition[i];
         } else {
           // if in some segment of the route there is a miss match we break with inner loop and pass to the next possible declare endpoind
@@ -132,13 +172,13 @@ export class AppServer {
     return [];
   }
 
-  #getRoutesHandler(req: IRequest, res: IResponse) {
+  #routesHandler(req: IRequest, res: IResponse, mapHandler: Map<string, IMiddleware[]>) {
     let index = 0;
-    let handlersCb: IMiddleware[] = this.#routeMatching(req, this.#mapGetHandlers);
+    const handlersCb: IMiddleware[] = this.#routeMatching(req, mapHandler);
     if (handlersCb.length == 0) {
       return res.status(400).text("Not found");
     }
-    let nextFunction = async (error?: any) => {
+    const nextFunction = async (error?: any) => {
       if (error) {
         this.#errorHandler(req, res, error);
       } else {
@@ -149,26 +189,16 @@ export class AppServer {
           console.log("Here there is an error");
           this.#errorHandler(req, res, error);
         }
-        // Promise.resolve(cb(req, res, nextFunction)).catch(error => {
-        //   console.log("Here there is an error");
-        //   this.#errorHandler(req, res, error);
-        // });
       }
     };
     nextFunction();
-  }
-
-  setErrorHandler(
-    clientErrorHandler: (req: IRequest, res: IResponse, error: ServerError | Error | any) => any
-  ) {
-    this.errorHandler = clientErrorHandler;
   }
 
   #errorHandler(req: IRequest, res: IResponse, error: ServerError | Error) {
     if (this.errorHandler) {
       this.errorHandler(req, res, error);
     } else {
-      let code =
+      const code =
         (error as any)?.code && typeof (error as any)?.code == "number"
           ? (error as any)?.code
           : 500;

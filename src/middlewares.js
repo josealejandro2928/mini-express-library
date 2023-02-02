@@ -1,22 +1,32 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+const { User } = require("./models");
+
 module.exports = {
     logReqMidd: (req, res, next) => {
-        const { pathName, query, params, body, headers } = req;
+        req.context = {};
         req.context.date = new Date();
         req.context.user = { "name": "User 1" }
+        let start = performance.now();
 
         res.once("finish", () => {
-            console.log("*********************************************")
-            console.log("logging: ", { pathName, query, params, body, headers, context: req.context, statusCode: res.statusCode });
-            console.log("*********************************************")
+            let end = performance.now();
+            let delay = ((end - start)).toFixed(2) + " s";
+            console.log("logging: ", `${req.method}:: ${req.url} -> ${res.statusCode} :: ${delay}`)
         })
         next();
     },
-    authorizationMidd: (req, res, next = () => { }) => {
-        if (req.headers.authorization) {
-            next();
-        } else {
-            throw new Error("Not authorizer");
-        }
+    authorizationMidd: async (req, res, next) => {
+        if (!req.headers.authorization)
+            throw { code: 401, message: "There is not authorization header" }
+
+        let userPart = req.headers.authorization.split("Bearer ")[1]
+        let userId = userPart.split("userId:")[1]
+        let loggedUser = await User.getUserById(userId);
+        if (!loggedUser)
+            throw { code: 401, message: "Invalid user token" }
+        
+        req.loggedUser = loggedUser;
+        next();
     }
 
 }

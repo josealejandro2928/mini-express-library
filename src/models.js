@@ -17,48 +17,50 @@ class User {
         if (isNaN(parseInt(this.age))) {
             throw { code: 400, message: "age must be an integer" }
         }
+        this.tasks = [];
         this.id = User.id++;
     }
-    
-    
+
+
     static async getListUsers() {
-        return new Promise((res, rej) => {
+        return new Promise((res) => {
             res(users);
         })
     }
     static async createUser(name, lastName, age) {
-        const newUser = new User(name, lastName, age);
-        return new Promise((res, rej) => {
+        return new Promise((res) => {
+            const newUser = new User(name, lastName, age);
+            users.push(newUser);
             res(newUser);
         })
     }
     static async deleteUser(id) {
-        const user = users.find((u) => u.id == id);
-        if (!user) throw new Error("User not found");
-        users = users.filter((u) => u.id != id);
-        return new Promise((res, rej) => {
+        return new Promise((res) => {
+            const user = users.find((u) => u.id == id);
+            if (!user) throw new Error("User not found");
+            users = users.filter((u) => u.id != id);
             res(true);
         })
     }
     static async getUserById(id) {
-        return new Promise((res, rej) => {
+        return new Promise((res) => {
             const user = users.find((u) => u.id == id);
             res(user);
         })
     }
     static async editUser(user) {
-        const userIndex = users.findIndex((u) => u.id == id);
-        if (userIndex == -1) throw new Error("User not found");
-        users[userIndex] = user
-        return new Promise((res, rej) => {
+        return new Promise((res) => {
+            const userIndex = users.findIndex((u) => u.id == user.id);
+            if (userIndex == -1) throw new Error("User not found");
+            users[userIndex] = user
             res(user);
         })
     }
-    
+
 }
-const users = [new User("Jose", "Alejandro", 27), new User("Carlos", "Perez", 20)]
+let users = [new User("Jose", "Alejandro", 27), new User("Carlos", "Perez", 20)]
 
 module.exports = {
     User: User,
-    
+
 }
