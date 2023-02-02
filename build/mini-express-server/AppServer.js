@@ -22,7 +22,7 @@ var __classPrivateFieldSet = (this && this.__classPrivateFieldSet) || function (
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _AppServer_instances, _AppServer_httpServer, _AppServer_port, _AppServer_mapGetHandlers, _AppServer_mapPostHandlers, _AppServer_mapPutHandlers, _AppServer_mapDeleteHandlers, _AppServer_init, _AppServer_switchRoutes, _AppServer_extendReqRes, _AppServer_getCompositionFromPath, _AppServer_routeMatching, _AppServer_routesHandler, _AppServer_errorHandler;
+var _AppServer_instances, _AppServer_httpServer, _AppServer_port, _AppServer_mapGetHandlers, _AppServer_mapPostHandlers, _AppServer_mapPutHandlers, _AppServer_mapDeleteHandlers, _AppServer_globalMiddlewares, _AppServer_init, _AppServer_switchRoutes, _AppServer_extendReqRes, _AppServer_getCompositionFromPath, _AppServer_routeMatching, _AppServer_routesHandler, _AppServer_errorHandler;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppServer = void 0;
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -38,6 +38,7 @@ class AppServer {
         _AppServer_mapPostHandlers.set(this, new Map());
         _AppServer_mapPutHandlers.set(this, new Map());
         _AppServer_mapDeleteHandlers.set(this, new Map());
+        _AppServer_globalMiddlewares.set(this, []);
         __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_init).call(this);
         this.errorHandler = undefined;
     }
@@ -74,12 +75,30 @@ class AppServer {
         }
         (_a = __classPrivateFieldGet(this, _AppServer_mapDeleteHandlers, "f").get(route)) === null || _a === void 0 ? void 0 : _a.push(...cbs);
     }
+    use(route, cb) {
+        if (typeof route == "string") {
+            if (!cb)
+                throw Error("There should be a callback function");
+            const executor = cb;
+            // register in all maps
+            this.get(route, executor);
+            this.post(route, executor);
+            this.put(route, executor);
+            this.delete(route, executor);
+        }
+        if (typeof route == "function") {
+            if (cb)
+                throw Error("Only one registration for the global use function");
+            const executor = route;
+            __classPrivateFieldGet(this, _AppServer_globalMiddlewares, "f").push(executor);
+        }
+    }
     setErrorHandler(clientErrorHandler) {
         this.errorHandler = clientErrorHandler;
     }
 }
 exports.AppServer = AppServer;
-_AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServer_mapGetHandlers = new WeakMap(), _AppServer_mapPostHandlers = new WeakMap(), _AppServer_mapPutHandlers = new WeakMap(), _AppServer_mapDeleteHandlers = new WeakMap(), _AppServer_instances = new WeakSet(), _AppServer_init = function _AppServer_init() {
+_AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServer_mapGetHandlers = new WeakMap(), _AppServer_mapPostHandlers = new WeakMap(), _AppServer_mapPutHandlers = new WeakMap(), _AppServer_mapDeleteHandlers = new WeakMap(), _AppServer_globalMiddlewares = new WeakMap(), _AppServer_instances = new WeakSet(), _AppServer_init = function _AppServer_init() {
     __classPrivateFieldSet(this, _AppServer_httpServer, node_http_1.default.createServer((req, res) => {
         let body = "";
         req.on("data", (chunk) => {
@@ -179,10 +198,11 @@ _AppServer_httpServer = new WeakMap(), _AppServer_port = new WeakMap(), _AppServ
     return [];
 }, _AppServer_routesHandler = function _AppServer_routesHandler(req, res, mapHandler) {
     let index = 0;
-    const handlersCb = __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_routeMatching).call(this, req, mapHandler);
+    let handlersCb = __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_routeMatching).call(this, req, mapHandler);
     if (handlersCb.length == 0) {
         return res.status(400).text("Not found");
     }
+    handlersCb = [...__classPrivateFieldGet(this, _AppServer_globalMiddlewares, "f"), ...handlersCb];
     const nextFunction = (error) => __awaiter(this, void 0, void 0, function* () {
         if (error) {
             __classPrivateFieldGet(this, _AppServer_instances, "m", _AppServer_errorHandler).call(this, req, res, error);

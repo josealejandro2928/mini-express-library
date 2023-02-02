@@ -10,7 +10,7 @@ module.exports = {
 
         res.once("finish", () => {
             let end = performance.now();
-            let delay = ((end - start)).toFixed(2) + " s";
+            let delay = ((end - start)).toFixed(2) + " ms";
             console.log("logging: ", `${req.method}:: ${req.url} -> ${res.statusCode} :: ${delay}`)
         })
         next();
@@ -24,9 +24,20 @@ module.exports = {
         let loggedUser = await User.getUserById(userId);
         if (!loggedUser)
             throw { code: 401, message: "Invalid user token" }
-        
+
         req.loggedUser = loggedUser;
         next();
+    },
+    jsonParser: (req, res, next) => {
+        try {
+            let bodyJson = JSON.parse(req.body);
+            req.body = bodyJson;
+        } catch (e) {
+            // NO JSON
+        } finally {
+            next();
+        }
+
     }
 
 }

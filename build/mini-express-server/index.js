@@ -14,6 +14,6 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const App_1 = require("./App");
+const AppServer_1 = require("./AppServer");
 __exportStar(require("./models.class"), exports);
-exports.default = App_1.AppServer;
+exports.default = AppServer_1.AppServer;

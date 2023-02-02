@@ -3,23 +3,32 @@
 ///////////////////////////////////////////////////////////////////////
 const AppServer = require("../build/mini-express-server/index.js").default;
 const { ServerError } = require("../build/mini-express-server/models.class.js");
-/////////////////////////////////////////////////////////////////////////
 const path = require("node:path");
 const fs = require("node:fs");
-const { logReqMidd, authorizationMidd } = require("./middlewares");
+const morgan = require("morgan");
+const helmet = require("helmet");
+const cors = require('cors')
+
+const { authorizationMidd, jsonParser } = require("./middlewares.js");
+const { User } = require("./models.js");
+
 
 const app = new AppServer()
 const port = 1234;
 
-const { User } = require("./models")
 
-app.get(`/api`, logReqMidd, (req, res) => {
+app.use(morgan("common"));
+app.use(cors());
+app.use(helmet());
+app.use(jsonParser);
+
+app.get(`/api`, (req, res) => {
     const { query, params, body, headers, context } = req;
     context["server"] = "my-app-server";
     res.status(200).json({ query, params, body, headers, context });
 })
 
-app.get(`/api/web/:page/`, logReqMidd, (req, res, next) => {
+app.get(`/api/web/:page/`, (req, res, next) => {
     let page = req.params.page;
     let pagesRootPath = path.resolve("pages");
     fs.readdir(pagesRootPath, { encoding: "utf8" }, (err, files) => {
@@ -33,12 +42,12 @@ app.get(`/api/web/:page/`, logReqMidd, (req, res, next) => {
     })
 })
 
-app.get(`/api/user/`, logReqMidd, async (req, res) => {
+app.get(`/api/user/`, async (req, res) => {
     let users = await User.getListUsers()
     res.status(200).json({ data: users });
 })
 
-app.get(`/api/user/:userId/`, logReqMidd, async (req, res, next) => {
+app.get(`/api/user/:userId/`, async (req, res, next) => {
     const userId = req.params.userId;
     const user = await User.getUserById(userId);
     if (!user) {
@@ -49,14 +58,14 @@ app.get(`/api/user/:userId/`, logReqMidd, async (req, res, next) => {
 })
 
 
-app.post(`/api/user/`, logReqMidd, async (req, res) => {
-    let data = JSON.parse(req.body);
+app.post(`/api/user/`, async (req, res) => {
+    let data = req.body;
     let newUser = await User.createUser(data.name, data.lastName, data.age);
     res.status(201).json({ data: newUser });
 })
 
-app.post(`/api/user/:userId/task`, logReqMidd, authorizationMidd, async (req, res) => {
-    let data = JSON.parse(req.body);
+app.post(`/api/user/:userId/task`, authorizationMidd, async (req, res) => {
+    let data = req.body;
     if (req.loggedUser.id != req.params.userId) {
         throw new ServerError(403, "Not allowed", ["you can edit other users"]);
     }
@@ -66,13 +75,13 @@ app.post(`/api/user/:userId/task`, logReqMidd, authorizationMidd, async (req, re
     res.status(201).json({ data: user });
 })
 
-app.put(`/api/user/:userId/`, logReqMidd, async (req, res, next) => {
+app.put(`/api/user/:userId/`, async (req, res, next) => {
     let userId = req.params.userId;
     let user = await User.getUserById(userId);
     if (!user) {
         return next(new ServerError(404, `User with id=${userId} not found`));
     }
-    let data = JSON.parse(req.body);
+    let data = req.body;
     if (data.name != undefined) {
         user.name = data.name;
     }
@@ -86,7 +95,7 @@ app.put(`/api/user/:userId/`, logReqMidd, async (req, res, next) => {
     res.status(201).json({ data: user });
 })
 
-app.delete(`/api/user/:userId/`, logReqMidd, authorizationMidd, async (req, res) => {
+app.delete(`/api/user/:userId/`, authorizationMidd, async (req, res) => {
     if (req.loggedUser.id != req.params.userId) {
         throw new ServerError(403, "Not allowed", ["you can edit other users"]);
     }

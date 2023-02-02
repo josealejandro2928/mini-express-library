@@ -11,6 +11,7 @@ export class AppServer {
   #mapPostHandlers = new Map<string, IMiddleware[]>();
   #mapPutHandlers = new Map<string, IMiddleware[]>();
   #mapDeleteHandlers = new Map<string, IMiddleware[]>();
+  #globalMiddlewares: IMiddleware[] = [];
 
   errorHandler:
     | ((req: IRequest, res: IResponse, error: ServerError | Error | any) => any)
@@ -130,6 +131,23 @@ export class AppServer {
     this.#mapDeleteHandlers.get(route)?.push(...cbs);
   }
 
+  use(route: string | IMiddleware, cb: IMiddleware | undefined) {
+    if (typeof route == "string") {
+      if (!cb) throw Error("There should be a callback function");
+      const executor: IMiddleware = cb;
+      // register in all maps
+      this.get(route, executor);
+      this.post(route, executor);
+      this.put(route, executor);
+      this.delete(route, executor);
+    }
+    if (typeof route == "function") {
+      if (cb) throw Error("Only one registration for the global use function");
+      const executor: IMiddleware = route;
+      this.#globalMiddlewares.push(executor);
+    }
+  }
+
   setErrorHandler(
     clientErrorHandler: (req: IRequest, res: IResponse, error: ServerError | Error | any) => any
   ) {
@@ -174,10 +192,11 @@ export class AppServer {
 
   #routesHandler(req: IRequest, res: IResponse, mapHandler: Map<string, IMiddleware[]>) {
     let index = 0;
-    const handlersCb: IMiddleware[] = this.#routeMatching(req, mapHandler);
+    let handlersCb: IMiddleware[] = this.#routeMatching(req, mapHandler);
     if (handlersCb.length == 0) {
       return res.status(400).text("Not found");
     }
+    handlersCb = [...this.#globalMiddlewares, ...handlersCb];
     const nextFunction = async (error?: any) => {
       if (error) {
         this.#errorHandler(req, res, error);
