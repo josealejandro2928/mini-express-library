@@ -127,6 +127,6 @@ app.use((error, req, res, next) => {
     res.status(code).json({ message: error.message, error: true, meta: error.meta })
 })
 
-let server = app.listen(port, () => {
+app.listen(port, () => {
     console.log("Server listening: ", port)
 })
