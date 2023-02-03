@@ -2,13 +2,14 @@
 import { createServer } from "node:http";
 import * as url from "node:url";
 import * as fs from "node:fs";
+import { RoutesTrie } from "./RoutesTrie";
 export class AppServer {
     httpServer = null;
     port = 8888;
-    mapGetHandlers = new Map();
-    mapPostHandlers = new Map();
-    mapPutHandlers = new Map();
-    mapDeleteHandlers = new Map();
+    mapGetHandlers = new RoutesTrie();
+    mapPostHandlers = new RoutesTrie();
+    mapPutHandlers = new RoutesTrie();
+    mapDeleteHandlers = new RoutesTrie();
     globalMiddlewares = [];
     customErrorHandler;
     constructor() {
@@ -88,30 +89,18 @@ export class AppServer {
         this.httpServer?.listen(this.port, undefined, undefined, cb);
     }
     get(route, ...cbs) {
-        if (!this.mapGetHandlers.has(route)) {
-            this.mapGetHandlers.set(route, []);
-        }
-        this.mapGetHandlers.get(route)?.push(...cbs);
+        this.mapGetHandlers.set(route, ...cbs);
     }
     post(route, ...cbs) {
-        if (!this.mapPostHandlers.has(route)) {
-            this.mapPostHandlers.set(route, []);
-        }
-        this.mapPostHandlers.get(route)?.push(...cbs);
+        this.mapPostHandlers.set(route, ...cbs);
     }
     put(route, ...cbs) {
-        if (!this.mapPutHandlers.has(route)) {
-            this.mapPutHandlers.set(route, []);
-        }
-        this.mapPutHandlers.get(route)?.push(...cbs);
+        this.mapPutHandlers.set(route, ...cbs);
     }
     delete(route, ...cbs) {
-        if (!this.mapDeleteHandlers.has(route)) {
-            this.mapDeleteHandlers.set(route, []);
-        }
-        this.mapDeleteHandlers.get(route)?.push(...cbs);
+        this.mapDeleteHandlers.set(route, ...cbs);
     }
-    use(route, cb) {
+    use(route, cb = null) {
         if (typeof route == "string") {
             if (!cb)
                 throw Error("There should be a callback function");
@@ -135,41 +124,39 @@ export class AppServer {
     getCompositionFromPath(pathStr = "") {
         return pathStr.split("/").filter(x => x != "");
     }
-    routeMatching(req, mapHandler) {
-        // this return from an example pathName: /v1/user/1/visit -> ['v1','user','1','visit']
-        const reqPathComposition = this.getCompositionFromPath(req.pathName);
-        for (const route of mapHandler.keys()) {
-            const routeComposition = this.getCompositionFromPath(route);
-            if (routeComposition.length != reqPathComposition.length)
-                continue;
-            let match = true;
-            const params = req.params;
-            for (let i = 0; i < reqPathComposition.length; i++) {
-                if (routeComposition[i].startsWith(":")) {
-                    // we extract the params defined in the methods as :param
-                    const param = routeComposition[i].split(":")[1];
-                    params[param] = reqPathComposition[i];
-                }
-                else {
-                    // if in some segment of the route there is a miss match we break with inner loop and pass to the next possible declare endpoind
-                    if (reqPathComposition[i] != routeComposition[i]) {
-                        match = false;
-                        break;
-                    }
-                }
-            }
-            if (match) {
-                // If there is a match we return the array of middleware associate to the route declaration
-                req.params = params;
-                return mapHandler.get(route);
-            }
-        }
-        // Not route handler found
-        return [];
-    }
+    // private routeMatching(req: IRequest, mapHandler: Map<string, IMiddleware[]>): IMiddleware[] {
+    //   // this return from an example pathName: /v1/user/1/visit -> ['v1','user','1','visit']
+    //   const reqPathComposition = this.getCompositionFromPath(req.pathName);
+    //   for (const route of mapHandler.keys()) {
+    //     const routeComposition = this.getCompositionFromPath(route);
+    //     if (routeComposition.length != reqPathComposition.length) continue;
+    //     let match = true;
+    //     const params: any = req.params;
+    //     for (let i = 0; i < reqPathComposition.length; i++) {
+    //       if (routeComposition[i].startsWith(":")) {
+    //         // we extract the params defined in the methods as :param
+    //         const param = routeComposition[i].split(":")[1];
+    //         params[param] = reqPathComposition[i];
+    //       } else {
+    //         // if in some segment of the route there is a miss match we break with inner loop and pass to the next possible declare endpoind
+    //         if (reqPathComposition[i] != routeComposition[i]) {
+    //           match = false;
+    //           break;
+    //         }
+    //       }
+    //     }
+    //     if (match) {
+    //       // If there is a match we return the array of middleware associate to the route declaration
+    //       req.params = params;
+    //       return mapHandler.get(route) as IMiddleware[];
+    //     }
+    //   }
+    //   // Not route handler found
+    //   return [];
+    // }
     routesHandler(req, res, mapHandler) {
         let index = 0;
-        let handlersCb = this.routeMatching(req, mapHandler);
+        let handlersCb = mapHandler.get(req.pathName, req);
         if (handlersCb.length == 0) {
             return res.status(404).text("Not found");
         }
@@ -184,7 +171,6 @@ export class AppServer {
                     await cb(req, res, nextFunction);
                 }
                 catch (error) {
-                    console.log("Here there is an error");
                     this.errorHandler(req, res, error);
                 }
             }

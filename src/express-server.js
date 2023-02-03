@@ -21,6 +21,15 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+
+//////stressing the api//////////////
+for (let i = 0; i < 1000; i++) {
+    app.get(`/v1/endpoind/${i}`, (req, res) => {
+        res.status(200).json({ "message": `Hello: ${i}` });
+    })
+}
+/////////////////////////////
+
 app.get(`/api`, (req, res) => {
     let { query, params, body, headers, context } = req;
     if (!context) {
