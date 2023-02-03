@@ -115,3 +115,5 @@ app.setErrorHandler((req, res, error) => {
 app.listen(port, () => {
     console.log("Server listening: ", port)
 })
+
+let server = app.getHttpServer()

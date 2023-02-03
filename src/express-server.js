@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { ServerError } = require("../build/mini-express-server/models.class.js");
+const { ServerError } = require("mini-express-server");
 const express = require("express");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -113,6 +113,6 @@ app.use((error, req, res, next) => {
     res.status(code).json({ message: error.message, error: true, meta: error.meta })
 })
 
-app.listen(port, () => {
+let server = app.listen(port, () => {
     console.log("Server listening: ", port)
 })

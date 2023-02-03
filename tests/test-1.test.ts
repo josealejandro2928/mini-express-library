@@ -1,14 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Server } from "node:http";
-import { AppServer} from "../lib/index";
+import { AppServer } from "../lib/index";
 describe("AppServer class", () => {
   let appServer: AppServer;
   beforeEach(() => {
     appServer = new AppServer();
   });
 
-  afterEach(()=>{
+  afterEach(() => {
     appServer.getHttpServer().close();
-  })
+  });
 
   test("init() should create an instance of node's http Server", () => {
     expect(appServer.getHttpServer()).toBeInstanceOf(Server);
@@ -33,6 +34,16 @@ describe("AppServer class", () => {
       expect.anything(),
       expect.anything(),
       appServer["mapGetHandlers"]
+    );
+
+    spyRoutesHandler.mockReset();
+    req.method = "POST";
+    appServer["switchRoutes"](req as any, res as any, "");
+
+    expect(spyRoutesHandler).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      appServer["mapPostHandlers"]
     );
   });
 
@@ -211,5 +222,32 @@ describe("AppServer.routesHandler", () => {
         authorization: "userId:2",
       })
     );
+  });
+
+  it("should call the global middleware with use()", () => {
+    req.method = "POST"
+    const appServer = new AppServer();
+    const middleware1 = jest.fn().mockImplementation((req, res, next) => {
+      next();
+    });
+    const middleware2 = jest.fn();
+    appServer.use(middleware1);
+    appServer.post("/test", middleware2);
+    appServer["routesHandler"](req, res, appServer["mapPostHandlers"]);
+    expect(middleware1).toHaveBeenCalledTimes(1);
+    expect(middleware2).toHaveBeenCalledTimes(1);
+  });
+  it("should call the global middleware with use() with a certain path", () => {
+    req.method = "PUT"
+    const appServer = new AppServer();
+    const middleware1 = jest.fn().mockImplementation((req, res, next) => {
+      next();
+    });
+    const middleware2 = jest.fn();
+    appServer.use("/api",middleware1);
+    appServer.put("/test", middleware2);
+    appServer["routesHandler"](req, res, appServer["mapPutHandlers"]);
+    expect(middleware1).toHaveBeenCalledTimes(0);
+    expect(middleware2).toHaveBeenCalledTimes(1);
   });
 });

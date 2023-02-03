@@ -131,7 +131,7 @@ export class AppServer {
     this.mapDeleteHandlers.get(route)?.push(...cbs);
   }
 
-  use(route: string | IMiddleware, cb: IMiddleware | undefined) {
+  use(route: string | IMiddleware, cb: IMiddleware | undefined | null = null) {
     if (typeof route == "string") {
       if (!cb) throw Error("There should be a callback function");
       const executor: IMiddleware = cb;
