@@ -3,26 +3,26 @@ import { createServer } from "node:http";
 import * as url from "node:url";
 import * as fs from "node:fs";
 export class AppServer {
-    #httpServer = null;
-    #port = 8888;
-    #mapGetHandlers = new Map();
-    #mapPostHandlers = new Map();
-    #mapPutHandlers = new Map();
-    #mapDeleteHandlers = new Map();
-    #globalMiddlewares = [];
-    errorHandler;
+    httpServer = null;
+    port = 8888;
+    mapGetHandlers = new Map();
+    mapPostHandlers = new Map();
+    mapPutHandlers = new Map();
+    mapDeleteHandlers = new Map();
+    globalMiddlewares = [];
+    customErrorHandler;
     constructor() {
-        this.#init();
-        this.errorHandler = undefined;
+        this.init();
+        this.customErrorHandler = undefined;
     }
-    #init() {
-        this.#httpServer = createServer((req, res) => {
+    init() {
+        this.httpServer = createServer((req, res) => {
             let body = "";
             req.on("data", (chunk) => {
                 body += chunk;
             });
             req.on("end", () => {
-                this.#switchRoutes(req, res, body);
+                this.switchRoutes(req, res, body);
             });
             req.on("error", error => {
                 res.writeHead(500, { "Content-Type": "text/html" });
@@ -30,26 +30,26 @@ export class AppServer {
             });
         });
     }
-    #switchRoutes(req, res, body) {
-        const { req: reqExtended, res: resExtended } = this.#extendReqRes(req, res, body);
+    switchRoutes(req, res, body) {
+        const { req: reqExtended, res: resExtended } = this.extendReqRes(req, res, body);
         if (req.method == "GET") {
-            this.#routesHandler(reqExtended, resExtended, this.#mapGetHandlers);
+            this.routesHandler(reqExtended, resExtended, this.mapGetHandlers);
         }
         else if (req.method == "POST") {
-            this.#routesHandler(reqExtended, resExtended, this.#mapPostHandlers);
+            this.routesHandler(reqExtended, resExtended, this.mapPostHandlers);
         }
         else if (req.method == "PUT") {
-            this.#routesHandler(reqExtended, resExtended, this.#mapPutHandlers);
+            this.routesHandler(reqExtended, resExtended, this.mapPutHandlers);
         }
         else if (req.method == "DELETE") {
-            this.#routesHandler(reqExtended, resExtended, this.#mapDeleteHandlers);
+            this.routesHandler(reqExtended, resExtended, this.mapDeleteHandlers);
         }
         else {
             resExtended.writeHead(405, { "Content-Type": "text/html" });
             resExtended.write("Not allowed");
         }
     }
-    #extendReqRes(req, res, body = "") {
+    extendReqRes(req, res, body = "") {
         const parseUrl = url.parse(req.url, true);
         const newRequest = req;
         newRequest.body = body;
@@ -84,32 +84,32 @@ export class AppServer {
         return { req: newRequest, res: newResponse };
     }
     listen(port = 8888, cb = null) {
-        this.#port = port;
-        this.#httpServer?.listen(this.#port, undefined, undefined, cb);
+        this.port = port;
+        this.httpServer?.listen(this.port, undefined, undefined, cb);
     }
     get(route, ...cbs) {
-        if (!this.#mapGetHandlers.has(route)) {
-            this.#mapGetHandlers.set(route, []);
+        if (!this.mapGetHandlers.has(route)) {
+            this.mapGetHandlers.set(route, []);
         }
-        this.#mapGetHandlers.get(route)?.push(...cbs);
+        this.mapGetHandlers.get(route)?.push(...cbs);
     }
     post(route, ...cbs) {
-        if (!this.#mapPostHandlers.has(route)) {
-            this.#mapPostHandlers.set(route, []);
+        if (!this.mapPostHandlers.has(route)) {
+            this.mapPostHandlers.set(route, []);
         }
-        this.#mapPostHandlers.get(route)?.push(...cbs);
+        this.mapPostHandlers.get(route)?.push(...cbs);
     }
     put(route, ...cbs) {
-        if (!this.#mapPutHandlers.has(route)) {
-            this.#mapPutHandlers.set(route, []);
+        if (!this.mapPutHandlers.has(route)) {
+            this.mapPutHandlers.set(route, []);
         }
-        this.#mapPutHandlers.get(route)?.push(...cbs);
+        this.mapPutHandlers.get(route)?.push(...cbs);
     }
     delete(route, ...cbs) {
-        if (!this.#mapDeleteHandlers.has(route)) {
-            this.#mapDeleteHandlers.set(route, []);
+        if (!this.mapDeleteHandlers.has(route)) {
+            this.mapDeleteHandlers.set(route, []);
         }
-        this.#mapDeleteHandlers.get(route)?.push(...cbs);
+        this.mapDeleteHandlers.get(route)?.push(...cbs);
     }
     use(route, cb) {
         if (typeof route == "string") {
@@ -126,20 +126,20 @@ export class AppServer {
             if (cb)
                 throw Error("Only one registration for the global use function");
             const executor = route;
-            this.#globalMiddlewares.push(executor);
+            this.globalMiddlewares.push(executor);
         }
     }
     setErrorHandler(clientErrorHandler) {
-        this.errorHandler = clientErrorHandler;
+        this.customErrorHandler = clientErrorHandler;
     }
-    #getCompositionFromPath(pathStr = "") {
+    getCompositionFromPath(pathStr = "") {
         return pathStr.split("/").filter(x => x != "");
     }
-    #routeMatching(req, mapHandler) {
+    routeMatching(req, mapHandler) {
         // this return from an example pathName: /v1/user/1/visit -> ['v1','user','1','visit']
-        const reqPathComposition = this.#getCompositionFromPath(req.pathName);
+        const reqPathComposition = this.getCompositionFromPath(req.pathName);
         for (const route of mapHandler.keys()) {
-            const routeComposition = this.#getCompositionFromPath(route);
+            const routeComposition = this.getCompositionFromPath(route);
             if (routeComposition.length != reqPathComposition.length)
                 continue;
             let match = true;
@@ -167,16 +167,16 @@ export class AppServer {
         // Not route handler found
         return [];
     }
-    #routesHandler(req, res, mapHandler) {
+    routesHandler(req, res, mapHandler) {
         let index = 0;
-        let handlersCb = this.#routeMatching(req, mapHandler);
+        let handlersCb = this.routeMatching(req, mapHandler);
         if (handlersCb.length == 0) {
-            return res.status(400).text("Not found");
+            return res.status(404).text("Not found");
         }
-        handlersCb = [...this.#globalMiddlewares, ...handlersCb];
+        handlersCb = [...this.globalMiddlewares, ...handlersCb];
         const nextFunction = async (error) => {
             if (error) {
-                this.#errorHandler(req, res, error);
+                this.errorHandler(req, res, error);
             }
             else {
                 const cb = handlersCb[index++];
@@ -185,15 +185,15 @@ export class AppServer {
                 }
                 catch (error) {
                     console.log("Here there is an error");
-                    this.#errorHandler(req, res, error);
+                    this.errorHandler(req, res, error);
                 }
             }
         };
         nextFunction();
     }
-    #errorHandler(req, res, error) {
-        if (this.errorHandler) {
-            this.errorHandler(req, res, error);
+    errorHandler(req, res, error) {
+        if (this.customErrorHandler) {
+            this.customErrorHandler(req, res, error);
         }
         else {
             const code = error?.code && typeof error?.code == "number"
@@ -201,6 +201,9 @@ export class AppServer {
                 : 500;
             res.status(code).text(error.message);
         }
+    }
+    getHttpServer() {
+        return this.httpServer;
     }
 }
 //# sourceMappingURL=AppServer.js.map
