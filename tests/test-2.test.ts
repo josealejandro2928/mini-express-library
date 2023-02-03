@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Server } from "node:http";
 import { AppServer } from "../lib/index";
 describe("AppServer matching routes", () => {
   let appServer: AppServer;

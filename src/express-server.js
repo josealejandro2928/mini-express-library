@@ -30,20 +30,7 @@ app.get(`/api`, (req, res) => {
     res.status(200).json({ query, params, body, headers, context });
 })
 
-app.get(`/api/web/:page/`, (req, res, next) => {
-    let page = req.params.page;
-    let pagesRootPath = path.resolve("pages");
-    fs.readdir(pagesRootPath, { encoding: "utf8" }, (err, files) => {
-        if (err) {
-            next(err);
-        } else {
-            let fileFound = files.find((file) => file == (page + ".html"))
-            if (fileFound) return res.status(200).sendFile(path.resolve(pagesRootPath, fileFound));
-            return next(new ServerError(404, "Page not found", [{ "websites": files }]));
-        }
-    })
-})
-
+////////////////////////USER CRUD/////////////////////////////////
 app.get(`/api/user/`, async (req, res) => {
     let users = await User.getListUsers()
     res.status(200).json({ data: users });
@@ -105,6 +92,24 @@ app.delete(`/api/user/:userId/`, authorizationMidd, async (req, res) => {
     await User.deleteUser(user.id)
     res.status(200).json({ status: "Ok" });
 })
+///////////////////////////////////////////////////////////////////////
+
+//////////////////////////// RENDER WEB PAGE //////////////////////////
+app.get(`/api/web/:page/`, (req, res, next) => {
+    let page = req.params.page;
+    let pagesRootPath = path.resolve("pages");
+    fs.readdir(pagesRootPath, { encoding: "utf8" }, (err, files) => {
+        if (err) {
+            next(err);
+        } else {
+            let fileFound = files.find((file) => file == (page + ".html"))
+            if (fileFound) return res.status(200).sendFile(path.resolve(pagesRootPath, fileFound));
+            return next(new ServerError(404, "Page not found", [{ "websites": files }]));
+        }
+    })
+})
+
+////////////////////////////////////////////////////////////////////////////
 
 // Error handler
 app.use((error, req, res, next) => {
