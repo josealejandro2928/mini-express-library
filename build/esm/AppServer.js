@@ -1,37 +1,27 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const node_http_1 = require("node:http");
-const url = require("node:url");
-const fs = require("node:fs");
-const path = require("node:path");
-const RoutesTrie_1 = require("./RoutesTrie");
+import { createServer } from "node:http";
+import * as url from "node:url";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { RoutesTrie } from "./RoutesTrie";
 const mime = require("mime-types");
-class AppServer {
+export default class AppServer {
+    httpServer = null;
+    port = 8888;
+    mapGetHandlers = new RoutesTrie();
+    mapPostHandlers = new RoutesTrie();
+    mapPutHandlers = new RoutesTrie();
+    mapDeleteHandlers = new RoutesTrie();
+    globalMiddlewares = [];
+    staticRouteMap = {};
+    customErrorHandler;
     constructor() {
-        this.httpServer = null;
-        this.port = 8888;
-        this.mapGetHandlers = new RoutesTrie_1.RoutesTrie();
-        this.mapPostHandlers = new RoutesTrie_1.RoutesTrie();
-        this.mapPutHandlers = new RoutesTrie_1.RoutesTrie();
-        this.mapDeleteHandlers = new RoutesTrie_1.RoutesTrie();
-        this.globalMiddlewares = [];
-        this.staticRouteMap = {};
         this.init();
         this.customErrorHandler = undefined;
     }
     init() {
-        this.httpServer = (0, node_http_1.createServer)((req, res) => {
+        this.httpServer = createServer((req, res) => {
             let body = "";
             req.on("data", (chunk) => {
                 body += chunk;
@@ -103,9 +93,8 @@ class AppServer {
         return { req: newRequest, res: newResponse };
     }
     listen(port = 8888, cb = null) {
-        var _a;
         this.port = port;
-        (_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.listen(this.port, undefined, undefined, cb);
+        this.httpServer?.listen(this.port, undefined, undefined, cb);
     }
     get(route, ...cbs) {
         this.mapGetHandlers.set(route, ...cbs);
@@ -187,20 +176,20 @@ class AppServer {
             return res.status(404).text("Not found");
         }
         handlersCb = [...this.globalMiddlewares, ...handlersCb];
-        const nextFunction = (error) => __awaiter(this, void 0, void 0, function* () {
+        const nextFunction = async (error) => {
             if (error) {
                 this.errorHandler(req, res, error);
             }
             else {
                 const cb = handlersCb[index++];
                 try {
-                    yield cb(req, res, nextFunction);
+                    await cb(req, res, nextFunction);
                 }
                 catch (error) {
                     this.errorHandler(req, res, error);
                 }
             }
-        });
+        };
         nextFunction();
     }
     errorHandler(req, res, error) {
@@ -208,8 +197,8 @@ class AppServer {
             this.customErrorHandler(req, res, error);
         }
         else {
-            const code = (error === null || error === void 0 ? void 0 : error.code) && typeof (error === null || error === void 0 ? void 0 : error.code) == "number"
-                ? error === null || error === void 0 ? void 0 : error.code
+            const code = error?.code && typeof error?.code == "number"
+                ? error?.code
                 : 500;
             res.status(code).text(error.message);
         }
@@ -243,12 +232,11 @@ class AppServer {
     }
     getstaticMiddleware() {
         return (req, res, next) => {
-            var _a;
             const pathName = req.pathName;
             const staticFolder = req.__DIR_STATIC_REFERENCED;
             const route = req.__ROUTE_STATIC_REFERENCED;
             try {
-                const segmentPath = (_a = pathName.split(route)) === null || _a === void 0 ? void 0 : _a[1].trim();
+                const segmentPath = pathName.split(route)?.[1].trim();
                 const fullPath = path.join(staticFolder, segmentPath);
                 fs.stat(fullPath, (error, stats) => {
                     if (error) {
@@ -278,5 +266,4 @@ class AppServer {
         };
     }
 }
-exports.default = AppServer;
 //# sourceMappingURL=AppServer.js.map

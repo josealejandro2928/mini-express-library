@@ -80,23 +80,27 @@ export default class AppServer {
       return this;
     };
     newResponse.text = function (data: string) {
-      res.writeHead(this.statusCode, { "Content-Type": "text/html" });
-      res.write(data);
-      res.end();
+      this.writeHead(this.statusCode, { "Content-Type": "text/html" });
+      this.write(data);
+      this.end();
     };
 
     newResponse.json = function (obj: any) {
-      res.writeHead(this.statusCode, { "Content-Type": "application/json" });
-      res.write(JSON.stringify(obj));
-      res.end();
+      this.writeHead(this.statusCode, { "Content-Type": "application/json" });
+      this.write(JSON.stringify(obj));
+      this.end();
     };
 
     newResponse.sendFile = function (pathFile: string, contentType = "text/html") {
       const fileReader = fs.createReadStream(pathFile);
-      res.writeHead(this.statusCode, { "Content-Type": contentType });
-      fileReader.pipe(res);
-      res.once("finish", () => {
-        res.end();
+      contentType = mime.contentType(path.extname(pathFile));
+      this.writeHead(this.statusCode, { "Content-Type": contentType });
+      fileReader.pipe(this);
+      fileReader.once("error", error => {
+        this.status(500).text(error.message)
+      });
+      this.once("finish", () => {
+        this.end();
       });
     };
 
@@ -228,7 +232,7 @@ export default class AppServer {
     return this.httpServer as Server;
   }
   //////////////STATIC FUNCTION//////////////////////////
-  handlerStatic(pathName: string, req: IRequest): boolean {
+  private handlerStatic(pathName: string, req: IRequest): boolean {
     let found = false;
     if (req.method != "GET") return false;
     for (const route in this.staticRouteMap) {
@@ -251,7 +255,7 @@ export default class AppServer {
     this.staticRouteMap[route] = pathToStaticDir;
   }
 
-  getstaticMiddleware(): IMiddleware {
+  private getstaticMiddleware(): IMiddleware {
     return (req: IRequest, res: IResponse, next) => {
       const pathName: string = req.pathName;
       const staticFolder: string = (req as any).__DIR_STATIC_REFERENCED;
@@ -272,10 +276,10 @@ export default class AppServer {
           });
           const readStream = fs.createReadStream(fullPath);
           readStream.pipe(res);
-          readStream.on("error", error => {
+          readStream.once("error", error => {
             return res.status(404).text(error.message);
           });
-          readStream.on("end", () => {
+          readStream.once("end", () => {
             res.end();
           });
         });
