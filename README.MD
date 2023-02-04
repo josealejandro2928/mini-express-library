@@ -67,8 +67,7 @@ app.get('/api', midd1, midd2, (req, res) => {
 ```
 **Example of console.log when we hit the endpoint "/api"**
 
-![res-1](https://user-images.githubusercontent.com/37028825/216784743-e9b7285b-df58-41a3-ae08-4ace5b84487b.png)
-
+<img height="70" src="https://user-images.githubusercontent.com/37028825/216784743-e9b7285b-df58-41a3-ae08-4ace5b84487b.png" />
 
 ### Error Handling
 
