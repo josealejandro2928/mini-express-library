@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 ///////////////////////////////////////////////////////////////////////
-const { AppServer, ServerError } = require("../build/cjs/index")
+const { AppServer, ServerError } = require("mini-express-server")
 
 const path = require("node:path");
 const fs = require("node:fs");
