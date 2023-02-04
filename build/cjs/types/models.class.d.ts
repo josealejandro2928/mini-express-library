@@ -28,3 +28,6 @@ export declare class ServerError extends Error {
     meta: any[];
     constructor(code: number, message: string, meta: []);
 }
+export type StaticRouteMap = {
+    [route: string]: string;
+};

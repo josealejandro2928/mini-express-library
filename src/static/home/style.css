@@ -1,0 +1,15 @@
+body,html {
+  height: 100vh;
+  padding: 0px;
+  margin: 0px;
+  box-sizing: border-box;
+}
+
+.dark {
+  background-color: #323232;
+  color: #fafafa;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+.center{
+    text-align: center;
+}

@@ -28,3 +28,7 @@ export class ServerError extends Error {
     this.meta = meta;
   }
 }
+
+export type StaticRouteMap = {
+  [route: string]: string;
+};

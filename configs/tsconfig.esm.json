@@ -8,5 +8,5 @@
     "outDir": "../build/esm",
     "declarationDir": "../build/esm/types"
   },
-  "include": ["../lib/index.ts"]
+  "include": ["../lib/**/*"]
 }

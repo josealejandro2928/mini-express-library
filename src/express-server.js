@@ -31,12 +31,8 @@ for (let i = 0; i < 1000; i++) {
 /////////////////////////////
 
 app.get(`/api`, (req, res) => {
-    let { query, params, body, headers, context } = req;
-    if (!context) {
-        context = {};
-    }
-    context["server"] = "express";
-    res.status(200).json({ query, params, body, headers, context });
+    let { query, params, body, headers } = req;
+    res.status(200).json({ query, params, body, headers });
 })
 
 ////////////////////////USER CRUD/////////////////////////////////
@@ -104,9 +100,12 @@ app.delete(`/api/user/:userId/`, authorizationMidd, async (req, res) => {
 ///////////////////////////////////////////////////////////////////////
 
 //////////////////////////// RENDER WEB PAGE //////////////////////////
+//////////////////Configuring the static route//////////////////////
+app.use('/api/web/static', express.static(path.join(__dirname, ".", "static")))
+
 app.get(`/api/web/:page/`, (req, res, next) => {
     let page = req.params.page;
-    let pagesRootPath = path.resolve("pages");
+    let pagesRootPath = path.resolve("src", "pages");
     fs.readdir(pagesRootPath, { encoding: "utf8" }, (err, files) => {
         if (err) {
             next(err);
@@ -117,7 +116,6 @@ app.get(`/api/web/:page/`, (req, res, next) => {
         }
     })
 })
-
 ////////////////////////////////////////////////////////////////////////////
 
 // Error handler

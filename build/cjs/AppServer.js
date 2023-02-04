@@ -9,12 +9,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AppServer = void 0;
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const node_http_1 = require("node:http");
 const url = require("node:url");
 const fs = require("node:fs");
+const path = require("node:path");
 const RoutesTrie_1 = require("./RoutesTrie");
+const mime = require("mime-types");
 class AppServer {
     constructor() {
         this.httpServer = null;
@@ -24,6 +26,7 @@ class AppServer {
         this.mapPutHandlers = new RoutesTrie_1.RoutesTrie();
         this.mapDeleteHandlers = new RoutesTrie_1.RoutesTrie();
         this.globalMiddlewares = [];
+        this.staticRouteMap = {};
         this.init();
         this.customErrorHandler = undefined;
     }
@@ -133,9 +136,9 @@ class AppServer {
     setErrorHandler(clientErrorHandler) {
         this.customErrorHandler = clientErrorHandler;
     }
-    getCompositionFromPath(pathStr = "") {
-        return pathStr.split("/").filter(x => x != "");
-    }
+    // private getCompositionFromPath(pathStr = ""): string[] {
+    //   return pathStr.split("/").filter(x => x != "");
+    // }
     // private routeMatching(req: IRequest, mapHandler: Map<string, IMiddleware[]>): IMiddleware[] {
     //   // this return from an example pathName: /v1/user/1/visit -> ['v1','user','1','visit']
     //   const reqPathComposition = this.getCompositionFromPath(req.pathName);
@@ -168,7 +171,14 @@ class AppServer {
     // }
     routesHandler(req, res, mapHandler) {
         let index = 0;
-        let handlersCb = mapHandler.get(req.pathName, req);
+        const pathName = req.pathName;
+        let handlersCb = [];
+        if (this.handlerStatic(pathName, req)) {
+            handlersCb.push(this.getstaticMiddleware());
+        }
+        else {
+            handlersCb = mapHandler.get(pathName, req);
+        }
         if (handlersCb.length == 0) {
             return res.status(404).text("Not found");
         }
@@ -203,6 +213,66 @@ class AppServer {
     getHttpServer() {
         return this.httpServer;
     }
+    //////////////STATIC FUNCTION//////////////////////////
+    handlerStatic(pathName, req) {
+        let found = false;
+        if (req.method != "GET")
+            return false;
+        for (const route in this.staticRouteMap) {
+            if (pathName.startsWith(route)) {
+                found = true;
+                req.__DIR_STATIC_REFERENCED = this.staticRouteMap[route];
+                req.__ROUTE_STATIC_REFERENCED = route;
+                break;
+            }
+        }
+        if (found)
+            return true;
+        return false;
+    }
+    setStatic(route, pathToStaticDir) {
+        if (!fs.existsSync(pathToStaticDir))
+            throw new Error("THe path to static directory does not exists");
+        if (!fs.statSync(pathToStaticDir).isDirectory())
+            throw new Error("The static path shoulb be referenced to a directory");
+        this.staticRouteMap[route] = pathToStaticDir;
+    }
+    getstaticMiddleware() {
+        return (req, res, next) => {
+            var _a;
+            const pathName = req.pathName;
+            const staticFolder = req.__DIR_STATIC_REFERENCED;
+            const route = req.__ROUTE_STATIC_REFERENCED;
+            try {
+                const segmentPath = (_a = pathName.split(route)) === null || _a === void 0 ? void 0 : _a[1].trim();
+                const fullPath = path.join(staticFolder, segmentPath);
+                fs.stat(fullPath, (error, stats) => {
+                    if (error) {
+                        return res.status(404).text(error.message);
+                    }
+                    if (stats.isDirectory()) {
+                        return res.status(404).text("Not found");
+                    }
+                    res.writeHead(200, {
+                        "Content-Type": mime.contentType(path.extname(fullPath)),
+                        "Content-Length": stats.size,
+                    });
+                    const readStream = fs.createReadStream(fullPath);
+                    readStream.pipe(res);
+                    readStream.on("error", error => {
+                        return res.status(404).text(error.message);
+                    });
+                    readStream.on("end", () => {
+                        res.end();
+                    });
+                });
+            }
+            catch (e) {
+                console.log("Error here");
+                next(e);
+            }
+        };
+    }
 }
-exports.AppServer = AppServer;
+exports.default = AppServer;
 //# sourceMappingURL=AppServer.js.map

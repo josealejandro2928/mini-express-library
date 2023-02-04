@@ -1,3 +1,5 @@
+import AppServerClass from "./AppServer";
+export { ServerError } from "./models.class";
 
-export * from "./models.class";
-export * from "./AppServer"
+export default AppServerClass;
+export const AppServer = AppServerClass

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Server } from "node:http";
-import { AppServer } from "../lib/index";
+import AppServer from "../lib/index";
 describe("AppServer class", () => {
   let appServer: AppServer;
   beforeEach(() => {
@@ -86,7 +86,7 @@ describe("AppServer class", () => {
 
     appServer.get(route, ...middlewares);
     const req: any = { params: {} };
-    
+
     expect(appServer["mapGetHandlers"].get(route, req)).toEqual(middlewares);
     expect(appServer["mapPostHandlers"].get(route, req)).toEqual([]);
     expect(appServer["mapPutHandlers"].get(route, req)).toEqual([]);
@@ -96,10 +96,10 @@ describe("AppServer class", () => {
   test("post() should add a POST route and its middlewares", () => {
     const route = "/test";
     const middlewares = [jest.fn(), jest.fn()];
-    
+
     appServer.post(route, ...middlewares);
     const req: any = { params: {} };
-    
+
     expect(appServer["mapGetHandlers"].get(route, req)).toEqual([]);
     expect(appServer["mapPostHandlers"].get(route, req)).toEqual(middlewares);
     expect(appServer["mapPutHandlers"].get(route, req)).toEqual([]);
@@ -112,7 +112,7 @@ describe("AppServer class", () => {
 
     appServer.put(route, ...middlewares);
     const req: any = { params: {} };
-    
+
     expect(appServer["mapGetHandlers"].get(route, req)).toEqual([]);
     expect(appServer["mapPostHandlers"].get(route, req)).toEqual([]);
     expect(appServer["mapPutHandlers"].get(route, req)).toEqual(middlewares);
@@ -122,7 +122,7 @@ describe("AppServer class", () => {
   test("delete() should add a DELETE route and its middlewares", () => {
     const route = "/test";
     const middlewares = [jest.fn(), jest.fn()];
-    
+
     appServer.delete(route, ...middlewares);
     const req: any = { params: {} };
 

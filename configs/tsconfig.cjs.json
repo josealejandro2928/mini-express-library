@@ -8,5 +8,5 @@
     "outDir": "../build/cjs",
     "declarationDir": "../build/cjs/types"
   },
-  "include": ["../lib/index.ts"]
+  "include": ["../lib/**/*"]
 }

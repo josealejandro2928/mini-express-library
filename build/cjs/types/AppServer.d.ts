@@ -1,14 +1,15 @@
 /// <reference types="node" />
 import { Server } from "node:http";
-import { IMiddleware, IRequest, IResponse, ServerError } from "./models.class";
-export declare class AppServer {
-    private httpServer;
+import { IMiddleware, IRequest, IResponse, ServerError, StaticRouteMap } from "./models.class";
+export default class AppServer {
+    httpServer: Server<any, any> | undefined | null;
     private port;
     private mapGetHandlers;
     private mapPostHandlers;
     private mapPutHandlers;
     private mapDeleteHandlers;
     private globalMiddlewares;
+    staticRouteMap: StaticRouteMap;
     customErrorHandler: ((req: IRequest, res: IResponse, error: ServerError | Error | any) => any) | undefined;
     constructor();
     private init;
@@ -21,8 +22,10 @@ export declare class AppServer {
     delete(route: string, ...cbs: IMiddleware[]): void;
     use(route: string | IMiddleware, cb?: IMiddleware | undefined | null): void;
     setErrorHandler(clientErrorHandler: (req: IRequest, res: IResponse, error: ServerError | Error | any) => any): void;
-    private getCompositionFromPath;
     private routesHandler;
     private errorHandler;
     getHttpServer(): Server;
+    handlerStatic(pathName: string, req: IRequest): boolean;
+    setStatic(route: string, pathToStaticDir: string): void;
+    getstaticMiddleware(): IMiddleware;
 }

@@ -29,7 +29,7 @@ describe("Trie testing", () => {
   });
   it("should get right structure", () => {
     const req: any = { params: {} };
-    
+
     const cbs1 = [jest.fn(), jest.fn()];
     const cbs2 = [jest.fn(), jest.fn()];
     const cbs3 = [jest.fn(), jest.fn(), jest.fn()];
@@ -80,5 +80,41 @@ describe("Trie testing", () => {
     expect(req.params).toEqual({});
     expect(routesTrie.get("/api/home/2/sports/view", req)).toEqual([...cbs2, ...cbs3]);
     expect(req.params).toEqual({ user: "2", chanel: "sports" });
+  });
+  it("should take the stuff in order", () => {
+    const req: any = { params: {} };
+
+    const cbs1 = [jest.fn(), jest.fn()];
+    const cbs2 = [jest.fn(), jest.fn()];
+    routesTrie.set("/api/index", ...cbs1);
+    routesTrie.set("/api/:param", ...cbs2);
+    expect(routesTrie.has("/api/index")).toBe(true);
+    expect(routesTrie.has("/api/:param")).toBe(true);
+    expect(routesTrie.get("/api", req)).toEqual([]);
+    expect(req.params).toEqual({});
+    expect(routesTrie.get("/api/index", req)).toEqual(cbs1);
+    expect(req.params).toEqual({});
+    expect(routesTrie.get("/api/home", req)).not.toEqual(cbs1);
+    expect(req.params).toEqual({param:"home"});
+    expect(routesTrie.get("/api/home", req)).toEqual(cbs2);
+    expect(req.params).toEqual({param:"home"});
+  });
+
+  it("should take the stuff in order", () => {
+    const req: any = { params: {} };
+
+    const cbs1 = [jest.fn(), jest.fn()];
+    const cbs2 = [jest.fn(), jest.fn()];
+    routesTrie.set("/api/:param", ...cbs2);
+    routesTrie.set("/api/apendix", ...cbs1);
+    expect(routesTrie.has("/api/apendix")).toBe(true);
+    expect(routesTrie.has("/api/:param")).toBe(true);
+    expect(routesTrie.get("/api", req)).toEqual([]);
+    expect(routesTrie.get("/api/apendix", req)).toEqual(cbs2);
+    expect(req.params).toEqual({ param: "apendix" });
+    expect(routesTrie.get("/api/home", req)).not.toEqual(cbs1);
+    expect(req.params).toEqual({ param: "home" });
+    expect(routesTrie.get("/api/home", req)).toEqual(cbs2);
+    expect(req.params).toEqual({ param: "home" });
   });
 });

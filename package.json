@@ -4,7 +4,7 @@
   "description": "A short implementation of a web server based in express architecture using build-in node modules",
   "scripts": {
     "build": "npm run clean && npm run build:esm && npm run build:cjs",
-    "dev": "rm -rf ./build && tsc -p ./configs/tsconfig.cjs.json && tsc -p ./configs/tsconfig.esm.json && mv build/esm/index.js build/esm/index.mjs -w",
+    "dev": "rm -rf ./build && tsc -w -p ./configs/tsconfig.cjs.json",
     "build:esm": "tsc -p ./configs/tsconfig.esm.json && mv build/esm/index.js build/esm/index.mjs",
     "build:cjs": "tsc -p ./configs/tsconfig.cjs.json",
     "clean": "rm -rf ./build",
@@ -54,5 +54,8 @@
   "main": "./build/mini-express-server/index.js",
   "files": [
     "build/**/*"
-  ]
+  ],
+  "dependencies": {
+    "mime-types": "^2.1.35"
+  }
 }
