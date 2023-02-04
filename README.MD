@@ -262,11 +262,11 @@ for (let i = 0; i < 1000; i++) {
 |---------------------|-------------------------|---------------------------|-------------------------|--------------|
 | mini-express-server | **3.488 sec**           | **2866.72 #/sec**         | **122.091 ms**          | **251 ms**   |
 | express             |   6.304 sec             |   1586.24                 |   220.647 ms            |   397 ms     |
-|---------------------|-------------------------|---------------------------|-------------------------|--------------|
+
 
 As you can appreciate in the results, the mini-express-server library beat the express library saving in the worsts case (where the 
-API had more than 1000 endpoints) 100 ms in time per request, 146 ms in the long request, having half of the time for completing the test
-and increase the capacity of requests per second to 1300.
+API had more than 1000 endpoints) **100 ms in time per request**, **146 ms in the long request**, having half of the time for completing the test
+and increase the capacity of requests per second to **1300** more than express.
 
 ## Stackblitz example of basic API
 
