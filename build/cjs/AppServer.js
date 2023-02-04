@@ -102,10 +102,15 @@ class AppServer {
         };
         return { req: newRequest, res: newResponse };
     }
-    listen(port = 8888, cb = null) {
+    listen(port = 8888, cb) {
         var _a;
         this.port = port;
-        (_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.listen(this.port, undefined, undefined, cb);
+        (_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.listen(this.port, undefined, undefined, () => {
+            var _a;
+            if (cb) {
+                cb((_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.address());
+            }
+        });
     }
     get(route, ...cbs) {
         this.mapGetHandlers.set(route, ...cbs);
@@ -211,7 +216,7 @@ class AppServer {
             const code = (error === null || error === void 0 ? void 0 : error.code) && typeof (error === null || error === void 0 ? void 0 : error.code) == "number"
                 ? error === null || error === void 0 ? void 0 : error.code
                 : 500;
-            res.status(code).text(error.message);
+            res.status(code).text((error === null || error === void 0 ? void 0 : error.message) || error || "Error");
         }
     }
     getHttpServer() {

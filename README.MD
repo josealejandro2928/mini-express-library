@@ -1,7 +1,6 @@
 # mini-express-server
 
-A short implementation of a web server based in express architecture using only build-in node modules
-like path, http, and fs
+A minimal implementation of a web server based in express architecture using only build-in node modules like path, http, and fs. The core class is `AppServer` that create a instance of Server calling createServer from `node:http`
 
 ## installation
 
@@ -9,79 +8,169 @@ like path, http, and fs
 npm i mini-express-server --save
 ```
 
+The implementation mantain the same architecture of express, where you can configure several middleware for every route. Also you can register global middlewares. See the example in typescript
+
 ## Usage
 
-```JavaScript
-const { AppServer,ServerError } = require("mini-express-server");
-const app = new AppServer()
-const port = 1234;
+```TypeScript
+import AppServer, { IRequest, IResponse } from 'mini-express-server';
 
-// A global middleware that will be execute to every incomming request
-app.use((req, res,next) => {
-    console.log("Hello world")
-    req.context["date"] = new Date();
-    next();
-})
+const app: AppServer = new AppServer();
+const morgan = require('morgan');
 
-app.get(`/api`, (req, res) => {
-    const { query, params, body, headers, context } = req;
-    context["server"] = "my-app-server";
-    res.status(200).json({ query, params, body, headers, context });
-})
+const port: number = +(process?.env?.PORT || 1234);
 
-app.listen(port, () => {
-    console.log("Server listening: ", port)
-})
+///////You can use morgan middleware for logging as express ////////
+app.use(morgan('dev'));
+
+app.get('/', (req: IRequest, res: IResponse) => {
+  console.log('Hello World');
+  return res.status(200).text('Hola mundo');
+});
+
+app.get('/api', (req, res) => {
+  const { query, params, body, headers } = req;
+  res.status(200).json({ query, params, body, headers });
+});
+
+app.listen(port, (address: any) => {
+  console.log('Server listening on: ', address);
+});
+
 ```
 
-You can configure your custom Error handler
+**You can define multiples middlewares**
 
-```JavaScript
-const { AppServer,ServerError } = require("mini-express-server");
-const app = new AppServer()
-const port = 1234;
+```TypeScript
+...
+/// Declaring middlewares /////////
+const midd1: IMiddleware = (req: IRequest, res: IResponse, next) => {
+  req.context.date = new Date();
+  next();
+};
+const midd2: IMiddleware = (req: IRequest, res: IResponse, next) => {
+  req.context.user = { name: 'Example', token: '454as54d5' };
+  next();
+};
 
-// A global middleware that will be execute to every incomming request
-app.use((req, res,next) => {
-    console.log("Hello world")
-    req.context["date"] = new Date();
-    next();
-})
+app.get('/', midd1, (req: IRequest, res: IResponse) => {
+  console.log('Hello World');
+  return res.status(200).text('Hello World');
+});
 
-app.get(`/api`, (req, res) => {
-    const { query, params, body, headers, context } = req;
-    context["server"] = "my-app-server";
-    res.status(200).json({ query, params, body, headers, context });
-})
+app.get('/api', midd1, midd2, (req, res) => {
+  const { query, params, body, headers, context } = req;
+  console.log(context);
+  res.status(200).json({ query, params, body, headers, context });
+});
+....
+```
 
-// As in express you can call next an that will cut the execution of the middlewares and return an error
-app.get(`/endpoind`, (req, res, next) => {
-    next(new ServerError(400,"Custom Error",[{message:"Custom error to test"}]))
-})
+Example response when we hit the endpoint /api
+<img  src="./images/res-1.png"/>
 
-/// But if you have a error without try-catch also will be catched automatic and passed to the error handler
-app.post(`/endpoind/:id`, (req, res) => {
-    let total = 0;
-    for(let i=0;i<100;i++){
-        total+=i;
-        if(i == 40){
-            throw new Error("Custom Error also like this")
-        }
-    }
-    res.status(200).json({ id:req.params.id,sum:total });
-})
+### Error Handling
 
+By default the library catch all the error inside of the middleware and pass them to a internal global error handler where the message of the error is returned back to the client. Also as in express you can passto the next function the object that represent the error.
 
-///////// Custom Error handler
+```TypeScript
+import AppServer, { IMiddleware, IRequest, IResponse, ServerError } from 'mini-express-server';
+
+const app: AppServer = new AppServer();
+const morgan = require('morgan');
+const port: number = +(process?.env?.PORT || 1234);
+
+app.use(morgan('dev'));
+
+app.get(`/error/1`, (req, res, next) => {
+  next(new ServerError(400, 'Custom Error', [{ message: 'Custom error to test' }]));
+});
+
+app.get(`/error/2`, async (req, res, next) => {
+  let asyncOp = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject('There was an error');
+    }, 1000);
+  });
+  await asyncOp;
+});
+
+app.listen(port, (address: any) => {
+  console.log('Server listening on: ', address);
+});
+```
+
+**You can configure your custom Error handler**
+
+```TypeScript
+import AppServer, { IMiddleware, IRequest, IResponse, ServerError } from 'mini-express-server';
+
+const app: AppServer = new AppServer();
+const morgan = require('morgan');
+const port: number = +(process?.env?.PORT || 1234);
+
+app.use(morgan('dev'));
+
+app.get(`/error/1`, (req, res, next) => {
+  next(new ServerError(400, 'Custom Error', [{ message: 'Custom error to test' }]));
+});
+
+app.get(`/error/2`, async (req, res, next) => {
+  let asyncOp = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(
+        new ServerError(429, 'Too many requeest', [
+          'To many request for this user',
+          'Clean cookies',
+        ])
+      );
+    }, 1000);
+  });
+  await asyncOp;
+});
+
+///////// Custom Error handler //////////////////////////////
 app.setErrorHandler((req, res, error) => {
-    console.error("THere is an error: ", error);
-    let code = error.code && !isNaN(parseInt(error.code)) ? error.code : 500;
-    res.status(code).json({ message: error.message, error: true, meta: error.meta })
-})
+  console.error('There is an error: ', error.message);
+  let code = error.code && !isNaN(parseInt(error.code)) ? error.code : 500;
+  res.status(code).json({ message: error.message, error: true, meta: error.meta });
+});
 
-app.listen(port, () => {
-    console.log("Server listening: ", port)
-})
+app.listen(port, (address: any) => {
+  console.log('Server listening on: ', address);
+});
 ```
+
+Example response when we hit the endpoint /error/2
+<img  src="./images/res-2.png"/>
+
+### Static files Server
+
+The mini-express-server also have the capabilities of serving static files and is quite similar with express. Bu here using the method `setStatic`. In the example bellow you can find how to set different endpoint for serving static files
+
+```TypeScript
+import AppServer, { IMiddleware, IRequest, IResponse, ServerError } from 'mini-express-server';
+
+const app: AppServer = new AppServer();
+const morgan = require('morgan');
+import path from 'node:path';
+
+const port: number = +(process?.env?.PORT || 1234);
+
+app.use(morgan('dev'));
+
+...
+/// first the endpoint for static files, the other the root path of thte directory that contain the files
+app.setStatic('/static', path.join(__dirname, '..', 'public'));
+app.setStatic('/storage', path.join(__dirname, '..', 'storage'));
+...
+
+app.listen(port, (address: any) => {
+  console.log('Server listening on: ', address);
+});
+
+```
+
 ## Stackblitz example
+
 [https://stackblitz.com/edit/node-mpg9k4?file=index.js](https://stackblitz.com/edit/node-mpg9k4?file=index.js)

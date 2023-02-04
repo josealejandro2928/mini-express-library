@@ -92,9 +92,13 @@ export default class AppServer {
         };
         return { req: newRequest, res: newResponse };
     }
-    listen(port = 8888, cb = null) {
+    listen(port = 8888, cb) {
         this.port = port;
-        this.httpServer?.listen(this.port, undefined, undefined, cb);
+        this.httpServer?.listen(this.port, undefined, undefined, () => {
+            if (cb) {
+                cb(this.httpServer?.address());
+            }
+        });
     }
     get(route, ...cbs) {
         this.mapGetHandlers.set(route, ...cbs);
@@ -200,7 +204,7 @@ export default class AppServer {
             const code = error?.code && typeof error?.code == "number"
                 ? error?.code
                 : 500;
-            res.status(code).text(error.message);
+            res.status(code).text(error?.message || error || "Error");
         }
     }
     getHttpServer() {

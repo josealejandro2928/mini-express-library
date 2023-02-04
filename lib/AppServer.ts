@@ -6,6 +6,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { IMiddleware, IRequest, IResponse, ServerError, StaticRouteMap } from "./models.class";
 import { RoutesTrie } from "./RoutesTrie";
+import { AddressInfo } from "node:net";
 const mime = require("mime-types");
 
 export default class AppServer {
@@ -97,7 +98,7 @@ export default class AppServer {
       this.writeHead(this.statusCode, { "Content-Type": contentType });
       fileReader.pipe(this);
       fileReader.once("error", error => {
-        this.status(500).text(error.message)
+        this.status(500).text(error.message);
       });
       this.once("finish", () => {
         this.end();
@@ -107,9 +108,17 @@ export default class AppServer {
     return { req: newRequest, res: newResponse };
   }
 
-  listen(port = 8888, cb = null): void {
+  listen(
+    port = 8888,
+    cb?: (address: string | AddressInfo | undefined | null) => void | null | undefined
+  ) {
     this.port = port;
-    this.httpServer?.listen(this.port, undefined, undefined, cb as any);
+
+    this.httpServer?.listen(this.port, undefined, undefined, () => {
+      if (cb) {
+        cb(this.httpServer?.address());
+      }
+    }) as Server<any, any>;
   }
 
   get(route: string, ...cbs: IMiddleware[]): void {
@@ -224,7 +233,7 @@ export default class AppServer {
         (error as any)?.code && typeof (error as any)?.code == "number"
           ? (error as any)?.code
           : 500;
-      res.status(code).text(error.message);
+      res.status(code).text(error?.message || error as any || "Error");
     }
   }
 

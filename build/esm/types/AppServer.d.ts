@@ -1,6 +1,8 @@
 /// <reference types="node" />
+/// <reference types="node" />
 import { Server } from "node:http";
 import { IMiddleware, IRequest, IResponse, ServerError, StaticRouteMap } from "./models.class";
+import { AddressInfo } from "node:net";
 export default class AppServer {
     httpServer: Server<any, any> | undefined | null;
     private port;
@@ -15,7 +17,7 @@ export default class AppServer {
     private init;
     private switchRoutes;
     private extendReqRes;
-    listen(port?: number, cb?: null): void;
+    listen(port?: number, cb?: (address: string | AddressInfo | undefined | null) => void | null | undefined): void;
     get(route: string, ...cbs: IMiddleware[]): void;
     post(route: string, ...cbs: IMiddleware[]): void;
     put(route: string, ...cbs: IMiddleware[]): void;
