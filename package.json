@@ -51,7 +51,8 @@
       }
     }
   },
-  "main": "./build/mini-express-server/index.js",
+  "main": "./build/cjs/index.js",
+  "types": "./build/cjs/types/index.d.ts",
   "files": [
     "build/**/*"
   ],
