@@ -59,5 +59,16 @@
   ],
   "dependencies": {
     "mime-types": "^2.1.35"
+  },
+  "homepage": "https://github.com/josealejandro2928/mini-express-library#readme",
+  "bugs": {
+    "url": "https://github.com/josealejandro2928/mini-express-library/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/josealejandro2928/mini-express-library.git"
   }
 }
