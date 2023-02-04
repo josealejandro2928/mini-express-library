@@ -170,6 +170,7 @@ app.listen(port, (address: any) => {
 });
 
 ```
+Here an example of serving static files from diferent sources: [https://stackblitz.com/edit/node-u2qygg?file=index.js](https://stackblitz.com/edit/node-u2qygg?file=index.js)
 
 ## Stackblitz example
 

@@ -11,7 +11,7 @@
     "lint": "eslint --init",
     "test": "jest --detectOpenHandles",
     "coverage": "jest --coverage --detectOpenHandles",
-    "publish":"npm run build && npm run test && npm publish"
+    "release":"npm run build && npm run test && npm publish"
   },
   "keywords": [
     "mini-express",

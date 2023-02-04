@@ -14,7 +14,7 @@ export interface IResponse extends ServerResponse {
   status: (statusCode: number) => IResponse;
   text: (data: string) => void;
   json: (data: any) => void;
-  sendFile: (data: string, contentType: string) => void;
+  sendFile: (pathFile: string, contentType: string) => void;
 }
 
 export type IMiddleware = (req: IRequest, res: IResponse, next: (error?: any) => any) => any;
