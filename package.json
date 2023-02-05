@@ -1,6 +1,6 @@
 {
   "name": "mini-express-server",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A short implementation of a web server based in express architecture using build-in node modules",
   "scripts": {
     "build": "npm run clean && npm run build:esm && npm run build:cjs",
