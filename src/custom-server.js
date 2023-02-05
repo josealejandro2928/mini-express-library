@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-
 ///////////////////////////////////////////////////////////////////////
-const { AppServer, ServerError } = require("mini-express-server");
+const { AppServer, ServerError } = require("mini-express-server")
+
 const path = require("node:path");
 const fs = require("node:fs");
 const morgan = require("morgan");
@@ -15,17 +15,23 @@ const { User } = require("./models.js");
 const app = new AppServer()
 const port = 1234;
 
-
 app.use(morgan("common"));
 app.use(cors());
 app.use(helmet());
 app.use(jsonParser);
 
 
+//////stressing the api//////////////
+for (let i = 0; i < 1000; i++) {
+    app.get(`/v1/endpoind/${i}`, (req, res) => {
+        res.status(200).json({ "message": `Hello: ${i}` });
+    })
+}
+/////////////////////////////
+
 app.get(`/api`, (req, res) => {
-    const { query, params, body, headers, context } = req;
-    context["server"] = "my-app-server";
-    res.status(200).json({ query, params, body, headers, context });
+    const { query, params, body, headers } = req;
+    res.status(200).json({ query, params, body, headers });
 })
 
 ///////////////////////////USER CRUD///////////////////////////////////
@@ -93,9 +99,12 @@ app.delete(`/api/user/:userId/`, authorizationMidd, async (req, res) => {
 ///////////////////////////////////////////////////////////////////////
 
 //////////////////////////// RENDER WEB PAGE //////////////////////////
+//////////////////Configuring the static route//////////////////////
+
+app.setStatic("/api/web/static", path.join(__dirname, ".", "static"))
 app.get(`/api/web/:page/`, (req, res, next) => {
     let page = req.params.page;
-    let pagesRootPath = path.resolve("pages");
+    let pagesRootPath = path.resolve("src", "pages");
     fs.readdir(pagesRootPath, { encoding: "utf8" }, (err, files) => {
         if (err) {
             next(err);
@@ -119,5 +128,3 @@ app.setErrorHandler((req, res, error) => {
 app.listen(port, () => {
     console.log("Server listening: ", port)
 })
-
-let server = app.getHttpServer()

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Server } from "node:http";
-import { AppServer } from "../lib/index";
+import AppServer from "../lib/index";
 describe("AppServer class", () => {
   let appServer: AppServer;
   beforeEach(() => {
@@ -85,11 +85,12 @@ describe("AppServer class", () => {
     const middlewares = [jest.fn(), jest.fn()];
 
     appServer.get(route, ...middlewares);
+    const req: any = { params: {} };
 
-    expect(appServer["mapGetHandlers"].get(route)).toEqual(middlewares);
-    expect(appServer["mapPostHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapPutHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapDeleteHandlers"].get(route)).toEqual(undefined);
+    expect(appServer["mapGetHandlers"].get(route, req)).toEqual(middlewares);
+    expect(appServer["mapPostHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapPutHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapDeleteHandlers"].get(route, req)).toEqual([]);
   });
 
   test("post() should add a POST route and its middlewares", () => {
@@ -97,11 +98,12 @@ describe("AppServer class", () => {
     const middlewares = [jest.fn(), jest.fn()];
 
     appServer.post(route, ...middlewares);
+    const req: any = { params: {} };
 
-    expect(appServer["mapGetHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapPostHandlers"].get(route)).toEqual(middlewares);
-    expect(appServer["mapPutHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapDeleteHandlers"].get(route)).toEqual(undefined);
+    expect(appServer["mapGetHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapPostHandlers"].get(route, req)).toEqual(middlewares);
+    expect(appServer["mapPutHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapDeleteHandlers"].get(route, req)).toEqual([]);
   });
 
   test("put() should add a PUT route and its middlewares", () => {
@@ -109,11 +111,12 @@ describe("AppServer class", () => {
     const middlewares = [jest.fn(), jest.fn()];
 
     appServer.put(route, ...middlewares);
+    const req: any = { params: {} };
 
-    expect(appServer["mapGetHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapPostHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapPutHandlers"].get(route)).toEqual(middlewares);
-    expect(appServer["mapDeleteHandlers"].get(route)).toEqual(undefined);
+    expect(appServer["mapGetHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapPostHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapPutHandlers"].get(route, req)).toEqual(middlewares);
+    expect(appServer["mapDeleteHandlers"].get(route, req)).toEqual([]);
   });
 
   test("delete() should add a DELETE route and its middlewares", () => {
@@ -121,11 +124,12 @@ describe("AppServer class", () => {
     const middlewares = [jest.fn(), jest.fn()];
 
     appServer.delete(route, ...middlewares);
+    const req: any = { params: {} };
 
-    expect(appServer["mapGetHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapPostHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapPutHandlers"].get(route)).toEqual(undefined);
-    expect(appServer["mapDeleteHandlers"].get(route)).toEqual(middlewares);
+    expect(appServer["mapGetHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapPostHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapPutHandlers"].get(route, req)).toEqual([]);
+    expect(appServer["mapDeleteHandlers"].get(route, req)).toEqual(middlewares);
   });
 });
 
@@ -225,7 +229,7 @@ describe("AppServer.routesHandler", () => {
   });
 
   it("should call the global middleware with use()", () => {
-    req.method = "POST"
+    req.method = "POST";
     const appServer = new AppServer();
     const middleware1 = jest.fn().mockImplementation((req, res, next) => {
       next();
@@ -238,13 +242,13 @@ describe("AppServer.routesHandler", () => {
     expect(middleware2).toHaveBeenCalledTimes(1);
   });
   it("should call the global middleware with use() with a certain path", () => {
-    req.method = "PUT"
+    req.method = "PUT";
     const appServer = new AppServer();
     const middleware1 = jest.fn().mockImplementation((req, res, next) => {
       next();
     });
     const middleware2 = jest.fn();
-    appServer.use("/api",middleware1);
+    appServer.use("/api", middleware1);
     appServer.put("/test", middleware2);
     appServer["routesHandler"](req, res, appServer["mapPutHandlers"]);
     expect(middleware1).toHaveBeenCalledTimes(0);

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AppServer } from "../lib/index";
+import AppServer from "../lib/index";
 describe("AppServer matching routes", () => {
   let appServer: AppServer;
   beforeEach(() => {
@@ -100,7 +100,6 @@ describe("Error handling", () => {
       json: jest.fn(),
     };
 
-
     const errHandler = jest.fn().mockImplementation((req, res, error) => {
       expect(error.message).toEqual("Custom Error");
     });
@@ -123,7 +122,7 @@ describe("Error handling", () => {
     appServer["switchRoutes"](req as any, res as any, "");
     expect(errHandler).toBeCalledTimes(1);
 
-    req.url = "/api/2"
+    req.url = "/api/2";
     appServer["switchRoutes"](req as any, res as any, "");
     expect(errHandler).toBeCalledTimes(2);
   });

@@ -12,7 +12,7 @@ export interface IRequest extends IncomingMessage {
     };
     hostName: string;
     pathName: string;
-    context?: {
+    context: {
         [key: string]: any;
     };
 }
@@ -20,11 +20,14 @@ export interface IResponse extends ServerResponse {
     status: (statusCode: number) => IResponse;
     text: (data: string) => void;
     json: (data: any) => void;
-    sendFile: (data: string, contentType: string) => void;
+    sendFile: (pathFile: string, contentType: string) => void;
 }
-export type IMiddleware = (req: IRequest, res: IResponse, next?: (error?: any) => any) => any;
+export type IMiddleware = (req: IRequest, res: IResponse, next: (error?: any) => any) => any;
 export declare class ServerError extends Error {
     code: number;
     meta: any[];
-    constructor(code: number, message: string, meta: []);
+    constructor(code: number, message: string, meta?: any[]);
 }
+export type StaticRouteMap = {
+    [route: string]: string;
+};

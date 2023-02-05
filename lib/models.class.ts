@@ -7,24 +7,28 @@ export interface IRequest extends IncomingMessage {
   params: { [key: string]: string };
   hostName: string;
   pathName: string;
-  context?: { [key: string]: any };
+  context: { [key: string]: any };
 }
 
 export interface IResponse extends ServerResponse {
   status: (statusCode: number) => IResponse;
   text: (data: string) => void;
   json: (data: any) => void;
-  sendFile: (data: string, contentType: string) => void;
+  sendFile: (pathFile: string, contentType: string) => void;
 }
 
-export type IMiddleware = (req: IRequest, res: IResponse, next?: (error?: any) => any) => any;
+export type IMiddleware = (req: IRequest, res: IResponse, next: (error?: any) => any) => any;
 
 export class ServerError extends Error {
   code = 0;
   meta: any[] = [];
-  constructor(code: number, message: string, meta: []) {
+  constructor(code: number, message: string, meta: any[] = []) {
     super(message);
     this.code = code;
     this.meta = meta;
   }
 }
+
+export type StaticRouteMap = {
+  [route: string]: string;
+};
