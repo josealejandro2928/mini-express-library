@@ -18,7 +18,7 @@ const path = require("node:path");
 const RoutesTrie_1 = require("./RoutesTrie");
 const mime = require("mime-types");
 class AppServer {
-    constructor() {
+    constructor(options) {
         this.httpServer = null;
         this.port = 8888;
         this.mapGetHandlers = new RoutesTrie_1.RoutesTrie();
@@ -27,15 +27,25 @@ class AppServer {
         this.mapDeleteHandlers = new RoutesTrie_1.RoutesTrie();
         this.globalMiddlewares = [];
         this.staticRouteMap = {};
-        this.init();
+        this.init(options);
         this.customErrorHandler = undefined;
     }
     /**
      * This method initializes the httpServer attribute with a new HTTP server created using the createServer function from the http module.
      * This server listens for incoming requests and calls the switchRoutes.
      */
-    init() {
-        this.httpServer = (0, node_http_1.createServer)((req, res) => {
+    init(options = {}) {
+        const basicOptions = {
+            keepAlive: true,
+            connectionsCheckingInterval: 30000,
+            keepAliveInitialDelay: 0,
+            keepAliveTimeout: 5000,
+            maxHeaderSize: 16385,
+            noDelay: true,
+        };
+        const opts = Object.assign(Object.assign({}, basicOptions), options);
+        // console.log("server Opts:", opts);
+        this.httpServer = (0, node_http_1.createServer)(opts, (req, res) => {
             let body = "";
             req.on("data", (chunk) => {
                 body += chunk;

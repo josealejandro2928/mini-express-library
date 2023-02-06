@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { ServerError } = require("mini-express-server");
+const { User } = require("./models")
+const { authorizationMidd } = require("./middlewares");
+
+
 const express = require("express");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -7,10 +11,6 @@ const bodyParser = require("body-parser");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cors = require('cors')
-
-const { User } = require("./models")
-const { authorizationMidd } = require("./middlewares");
-
 
 const app = express();
 const port = 1235;
@@ -20,7 +20,6 @@ app.use(helmet());
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 
 //////stressing the api//////////////
 for (let i = 0; i < 1000; i++) {
@@ -34,6 +33,10 @@ app.get(`/api`, (req, res) => {
     let { query, params, body, headers } = req;
     res.status(200).json({ query, params, body, headers });
 })
+
+
+
+
 
 ////////////////////////USER CRUD/////////////////////////////////
 app.get(`/api/user/`, async (req, res) => {
@@ -126,5 +129,5 @@ app.use((error, req, res, next) => {
 })
 
 app.listen(port, () => {
-    console.log("Server listening: ", port)
+    console.log("Server created by express library listening: ", port)
 })

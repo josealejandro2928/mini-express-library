@@ -7,6 +7,7 @@ import * as path from "node:path";
 import { IMiddleware, IRequest, IResponse, ServerError, StaticRouteMap } from "./models.class";
 import { RoutesTrie } from "./RoutesTrie";
 import { AddressInfo } from "node:net";
+import { ServerOptions } from "node:https";
 const mime = require("mime-types");
 
 export default class AppServer {
@@ -23,8 +24,8 @@ export default class AppServer {
     | ((req: IRequest, res: IResponse, error: ServerError | Error | any) => any)
     | undefined;
 
-  constructor() {
-    this.init();
+  constructor(options?: ServerOptions) {
+    this.init(options);
     this.customErrorHandler = undefined;
   }
 
@@ -32,8 +33,18 @@ export default class AppServer {
    * This method initializes the httpServer attribute with a new HTTP server created using the createServer function from the http module.
    * This server listens for incoming requests and calls the switchRoutes.
    */
-  private init(): void {
-    this.httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+  private init(options: ServerOptions = {}): void {
+    const basicOptions: ServerOptions = {
+      keepAlive: true,
+      connectionsCheckingInterval: 30000,
+      keepAliveInitialDelay: 0,
+      keepAliveTimeout: 5000,
+      maxHeaderSize: 16385,
+      noDelay: true,
+    };
+    const opts = { ...basicOptions, ...options };
+    // console.log("server Opts:", opts);
+    this.httpServer = createServer(opts, (req: IncomingMessage, res: ServerResponse) => {
       let body = "";
       req.on("data", (chunk: any) => {
         body += chunk;

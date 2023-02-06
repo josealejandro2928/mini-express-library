@@ -1,8 +1,10 @@
 /// <reference types="node" />
 /// <reference types="node" />
+/// <reference types="node" />
 import { Server } from "node:http";
 import { IMiddleware, IRequest, IResponse, ServerError, StaticRouteMap } from "./models.class";
 import { AddressInfo } from "node:net";
+import { ServerOptions } from "node:https";
 export default class AppServer {
     httpServer: Server<any, any> | undefined | null;
     private port;
@@ -13,7 +15,7 @@ export default class AppServer {
     private globalMiddlewares;
     staticRouteMap: StaticRouteMap;
     customErrorHandler: ((req: IRequest, res: IResponse, error: ServerError | Error | any) => any) | undefined;
-    constructor();
+    constructor(options?: ServerOptions);
     /**
      * This method initializes the httpServer attribute with a new HTTP server created using the createServer function from the http module.
      * This server listens for incoming requests and calls the switchRoutes.

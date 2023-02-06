@@ -1,6 +1,6 @@
 # echo "host: $1";
 # echo "endpoind: $2";
-ab -k -c 350 -n 10000 "$1$2"
+ab -c 350 -n 10000 "$1$2"
 
 
 # test api point

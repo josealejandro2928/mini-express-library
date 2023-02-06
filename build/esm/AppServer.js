@@ -16,16 +16,26 @@ export default class AppServer {
     globalMiddlewares = [];
     staticRouteMap = {};
     customErrorHandler;
-    constructor() {
-        this.init();
+    constructor(options) {
+        this.init(options);
         this.customErrorHandler = undefined;
     }
     /**
      * This method initializes the httpServer attribute with a new HTTP server created using the createServer function from the http module.
      * This server listens for incoming requests and calls the switchRoutes.
      */
-    init() {
-        this.httpServer = createServer((req, res) => {
+    init(options = {}) {
+        const basicOptions = {
+            keepAlive: true,
+            connectionsCheckingInterval: 30000,
+            keepAliveInitialDelay: 0,
+            keepAliveTimeout: 5000,
+            maxHeaderSize: 16385,
+            noDelay: true,
+        };
+        const opts = { ...basicOptions, ...options };
+        // console.log("server Opts:", opts);
+        this.httpServer = createServer(opts, (req, res) => {
             let body = "";
             req.on("data", (chunk) => {
                 body += chunk;
