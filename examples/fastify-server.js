@@ -3,7 +3,6 @@
 const app = require('fastify')()
 const port = 1236;
 
-
 //////stressing the api//////////////
 for (let i = 0; i < 1000; i++) {
     app.get(`/v1/endpoind/${i}`, (req, res) => {

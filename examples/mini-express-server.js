@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const helmet = require("helmet");
+const { AppServer } = require("mini-express-server")
 const morgan = require("morgan");
+const helmet = require("helmet");
 const cors = require('cors')
+const { jsonParser } = require("./middlewares.js");
 
-const app = express();
-const port = 1235;
+const app = new AppServer();
+const port = 1234;
 
 app.use(morgan("common"));
-app.use(helmet());
 app.use(cors());
-app.use(bodyParser.json());
+app.use(helmet());
+app.use(jsonParser);
 
 //////stressing the api//////////////
 for (let i = 0; i < 1000; i++) {
@@ -23,10 +23,11 @@ for (let i = 0; i < 1000; i++) {
 /////////////////////////////
 
 app.get(`/api`, (req, res) => {
-    let { query, params, body, headers } = req;
+    const { query, params, body, headers } = req;
     res.status(200).json({ query, params, body, headers });
 })
 
+
 app.listen(port, () => {
-    console.log("Server created by express library listening: ", port)
+    console.log("Server created by mini-express-server library listening: ", port)
 })
