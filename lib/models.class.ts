@@ -13,8 +13,9 @@ export interface IRequest extends IncomingMessage {
 export interface IResponse extends ServerResponse {
   status: (statusCode: number) => IResponse;
   text: (data: string) => void;
+  send: (data: string) => void;
   json: (data: any) => void;
-  sendFile: (pathFile: string, contentType: string) => void;
+  sendFile: (pathFile: string) => void;
 }
 
 export type IMiddleware = (req: IRequest, res: IResponse, next: (error?: any) => any) => any;
@@ -31,4 +32,9 @@ export class ServerError extends Error {
 
 export type StaticRouteMap = {
   [route: string]: string;
+};
+
+export type ListenOptions = {
+  hostname?: string | undefined;
+  backlog?: number | undefined;
 };

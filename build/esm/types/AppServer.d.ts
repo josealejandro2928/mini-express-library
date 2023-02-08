@@ -2,7 +2,7 @@
 /// <reference types="node" />
 /// <reference types="node" />
 import { Server } from "node:http";
-import { IMiddleware, IRequest, IResponse, ServerError, StaticRouteMap } from "./models.class";
+import { IMiddleware, IRequest, IResponse, ListenOptions, ServerError, StaticRouteMap } from "./models.class";
 import { AddressInfo } from "node:net";
 import { ServerOptions } from "node:https";
 export default class AppServer {
@@ -43,13 +43,14 @@ export default class AppServer {
      * The extended res object includes methods for setting the status code, returning text or JSON data, or sending a file.
      */
     private extendReqRes;
+    processReqResBasedOnClientHeaders(req: IRequest, res: IResponse): void;
     /**
      *
      * @param port The number of the port for listening
      * @param cb A callback function that will be called once the server starts successfully
      * This method starts the HTTP server and listens for incoming requests on the specified port. The default port is 8888.
      */
-    listen(port?: number, cb?: (address: string | AddressInfo | undefined | null) => void | null | undefined): void;
+    listen(port?: number, cb?: (address: string | AddressInfo | undefined | null) => void | null | undefined, opts?: ListenOptions): void;
     /**
      *
      * @param route String that specifies the path for the route
@@ -186,7 +187,8 @@ export default class AppServer {
      
       * ```Typescript
      * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-       const app: AppServer = new AppServer();
+       import { IRequest } from 'mini-express-server';
+  const app: AppServer = new AppServer();
        const port: number = +(process?.env?.PORT || 1234);
       
       let users:any[] = [];

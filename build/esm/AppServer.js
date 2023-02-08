@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import * as url from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { ServerError, } from "./models.class";
 import { RoutesTrie } from "./RoutesTrie";
 const mime = require("mime-types");
 export default class AppServer {
@@ -61,6 +62,7 @@ export default class AppServer {
      */
     switchRoutes(req, res, body) {
         const { req: reqExtended, res: resExtended } = this.extendReqRes(req, res, body);
+        this.processReqResBasedOnClientHeaders(reqExtended, resExtended);
         if (req.method == "GET") {
             this.routesHandler(reqExtended, resExtended, this.mapGetHandlers);
         }
@@ -103,22 +105,38 @@ export default class AppServer {
             return this;
         };
         newResponse.text = function (data) {
+            data = data.toString();
+            this.writeHead(this.statusCode, { "Content-Type": "text/html" });
+            this.write(data);
+            this.end();
+        };
+        newResponse.send = function (data) {
+            data = data.toString();
             this.writeHead(this.statusCode, { "Content-Type": "text/html" });
             this.write(data);
             this.end();
         };
         newResponse.json = function (obj) {
+            let dataStr = "";
+            try {
+                dataStr = JSON.stringify(obj, null, 2);
+            }
+            catch (e) {
+                throw new ServerError(400, e?.message);
+            }
             this.writeHead(this.statusCode, { "Content-Type": "application/json" });
-            this.write(JSON.stringify(obj));
+            this.write(dataStr);
             this.end();
         };
-        newResponse.sendFile = function (pathFile, contentType = "text/html") {
+        newResponse.sendFile = function (pathFile) {
             const fileReader = fs.createReadStream(pathFile);
-            contentType = mime.contentType(path.extname(pathFile));
+            const contentType = mime.contentType(path.extname(pathFile));
             this.writeHead(this.statusCode, { "Content-Type": contentType });
             fileReader.pipe(this);
             fileReader.once("error", error => {
-                this.status(500).text(error.message);
+                this.statusCode = 500;
+                this.write(error.message.toString());
+                this.end();
             });
             this.once("finish", () => {
                 this.end();
@@ -126,16 +144,31 @@ export default class AppServer {
         };
         return { req: newRequest, res: newResponse };
     }
+    processReqResBasedOnClientHeaders(req, res) {
+        const headers = req.headers;
+        const connection = headers.connection;
+        if (connection && connection.toLowerCase() == "keep-alive") {
+            req.socket.setKeepAlive(true, 30 * 1000); // 30 seconds
+        }
+    }
     /**
      *
      * @param port The number of the port for listening
      * @param cb A callback function that will be called once the server starts successfully
      * This method starts the HTTP server and listens for incoming requests on the specified port. The default port is 8888.
      */
-    listen(port = 8888, cb) {
+    listen(port = 8888, cb, opts) {
         this.port = port;
-        this.httpServer?.listen(this.port, undefined, undefined, () => {
+        const basicOptions = { hostname: "localhost" };
+        if (opts) {
+            opts = { ...basicOptions, ...opts };
+        }
+        else {
+            opts = basicOptions;
+        }
+        this.httpServer?.listen(this.port, opts.hostname, opts.backlog, () => {
             if (cb) {
+                this.httpServer.keepAliveTimeout = 1000 * 30; // 30 minute;
                 cb(this.httpServer?.address());
             }
         });
@@ -284,7 +317,8 @@ export default class AppServer {
      
       * ```Typescript
      * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-       const app: AppServer = new AppServer();
+       import { IRequest } from 'mini-express-server';
+  const app: AppServer = new AppServer();
        const port: number = +(process?.env?.PORT || 1234);
       
       let users:any[] = [];

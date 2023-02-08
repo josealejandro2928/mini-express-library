@@ -4,7 +4,14 @@ import { Server, IncomingMessage, ServerResponse, createServer } from "node:http
 import * as url from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { IMiddleware, IRequest, IResponse, ServerError, StaticRouteMap } from "./models.class";
+import {
+  IMiddleware,
+  IRequest,
+  IResponse,
+  ListenOptions,
+  ServerError,
+  StaticRouteMap,
+} from "./models.class";
 import { RoutesTrie } from "./RoutesTrie";
 import { AddressInfo } from "node:net";
 import { ServerOptions } from "node:https";
@@ -71,6 +78,7 @@ export default class AppServer {
    */
   private switchRoutes(req: IncomingMessage, res: ServerResponse, body: any): void {
     const { req: reqExtended, res: resExtended } = this.extendReqRes(req, res, body);
+    this.processReqResBasedOnClientHeaders(reqExtended, resExtended);
     if (req.method == "GET") {
       this.routesHandler(reqExtended, resExtended, this.mapGetHandlers);
     } else if (req.method == "POST") {
@@ -116,24 +124,40 @@ export default class AppServer {
       return this;
     };
     newResponse.text = function (data: string) {
+      data = data.toString();
+      this.writeHead(this.statusCode, { "Content-Type": "text/html" });
+      this.write(data);
+      this.end();
+    };
+
+    newResponse.send = function (data: string) {
+      data = data.toString();
       this.writeHead(this.statusCode, { "Content-Type": "text/html" });
       this.write(data);
       this.end();
     };
 
     newResponse.json = function (obj: any) {
+      let dataStr = "";
+      try {
+        dataStr = JSON.stringify(obj, null, 2);
+      } catch (e: any) {
+        throw new ServerError(400, e?.message);
+      }
       this.writeHead(this.statusCode, { "Content-Type": "application/json" });
-      this.write(JSON.stringify(obj));
+      this.write(dataStr);
       this.end();
     };
 
-    newResponse.sendFile = function (pathFile: string, contentType = "text/html") {
+    newResponse.sendFile = function (pathFile: string) {
       const fileReader = fs.createReadStream(pathFile);
-      contentType = mime.contentType(path.extname(pathFile));
+      const contentType = mime.contentType(path.extname(pathFile));
       this.writeHead(this.statusCode, { "Content-Type": contentType });
       fileReader.pipe(this);
       fileReader.once("error", error => {
-        this.status(500).text(error.message);
+        this.statusCode = 500;
+        this.write(error.message.toString());
+        this.end();
       });
       this.once("finish", () => {
         this.end();
@@ -141,6 +165,14 @@ export default class AppServer {
     };
 
     return { req: newRequest, res: newResponse };
+  }
+
+  processReqResBasedOnClientHeaders(req: IRequest, res: IResponse): void {
+    const headers = req.headers;
+    const connection = headers.connection;
+    if (connection && connection.toLowerCase() == "keep-alive") {
+      req.socket.setKeepAlive(true, 30 * 1000); // 30 seconds
+    }
   }
 
   /**
@@ -151,12 +183,20 @@ export default class AppServer {
    */
   listen(
     port = 8888,
-    cb?: (address: string | AddressInfo | undefined | null) => void | null | undefined
+    cb?: (address: string | AddressInfo | undefined | null) => void | null | undefined,
+    opts?: ListenOptions
   ) {
     this.port = port;
+    const basicOptions: ListenOptions = { hostname: "localhost" };
+    if (opts) {
+      opts = { ...basicOptions, ...opts };
+    } else {
+      opts = basicOptions;
+    }
 
-    this.httpServer?.listen(this.port, undefined, undefined, () => {
+    this.httpServer?.listen(this.port, opts.hostname, opts.backlog, () => {
       if (cb) {
+        (this.httpServer as Server).keepAliveTimeout = 1000 * 30; // 30 minute;
         cb(this.httpServer?.address());
       }
     }) as Server<any, any>;
@@ -310,7 +350,8 @@ export default class AppServer {
    
     * ```Typescript
    * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-     const app: AppServer = new AppServer();
+     import { IRequest } from 'mini-express-server';
+const app: AppServer = new AppServer();
      const port: number = +(process?.env?.PORT || 1234);
     
     let users:any[] = [];
@@ -426,8 +467,14 @@ export default class AppServer {
       if (error) {
         this.errorHandler(req, res, error);
       } else {
-        const cb: IMiddleware = handlersCb[index++];
         try {
+          if (index >= handlersCb.length)
+            throw new ServerError(
+              400,
+              "Invalid use of chain of middlewares, the last cannot call function next to execute the next one."
+            );
+          const cb: IMiddleware = handlersCb[index++];
+          if (!cb) throw new ServerError(400, "The function to process is undefined");
           await cb(req, res, nextFunction);
         } catch (error: any) {
           this.errorHandler(req, res, error);

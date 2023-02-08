@@ -3,7 +3,7 @@ const { authorizationMidd, jsonParser } = require("./middlewares.js");
 const { User } = require("./models.js");
 
 
-const { AppServer, ServerError } = require("mini-express-server");
+const { AppServer, ServerError } = require("../build/cjs/index.js");
 const path = require("node:path");
 const fs = require("node:fs");
 const morgan = require("morgan");
@@ -19,7 +19,7 @@ app.use(helmet());
 app.use(jsonParser);
 
 //////stressing the api//////////////
-for (let i = 0; i < 1000; i++) {
+for (let i = 0; i < 500; i++) {
     app.get(`/v1/endpoind/${i}`, (req, res) => {
         res.status(200).json({ "message": `Hello: ${i}` });
     })
@@ -29,6 +29,11 @@ for (let i = 0; i < 1000; i++) {
 app.get(`/api`, (req, res) => {
     const { query, params, body, headers } = req;
     res.status(200).json({ query, params, body, headers });
+})
+
+app.get(`/api/error`, (req, res) => {
+    const { query, params, body, headers } = req;
+    res.status(200).sendFile("./pages/index.html")
 })
 
 
@@ -103,7 +108,7 @@ app.delete(`/api/user/:userId/`, authorizationMidd, async (req, res) => {
 app.setStatic("/api/web/static", path.join(__dirname, ".", "static"))
 app.get(`/api/web/:page/`, (req, res, next) => {
     let page = req.params.page;
-    let pagesRootPath = path.resolve("src", "pages");
+    let pagesRootPath = path.resolve("examples", "pages");
     fs.readdir(pagesRootPath, { encoding: "utf8" }, (err, files) => {
         if (err) {
             next(err);
@@ -124,6 +129,6 @@ app.setErrorHandler((req, res, error) => {
 
 
 
-app.listen(port, () => {
-    console.log("Server created by mini-express-server library listening: ", port)
+app.listen(port, (address) => {
+    console.log("Server created by mini-express-server library listening at: ", address)
 })
