@@ -10,10 +10,11 @@ const app = new AppServer();
 const userRouter = require("./routes/user.js");
 const port = 1234;
 
-// app.use(morgan("common"));
-// app.use(cors());
-// app.use(helmet());
-// app.use(jsonParser);
+/// comments this global middlewares when you try to test agains the exmple in fastify
+app.use(morgan("common"));
+app.use(cors());
+app.use(helmet());
+app.use(jsonParser);
 
 //////stressing the api//////////////
 for (let i = 0; i < 500; i++) {

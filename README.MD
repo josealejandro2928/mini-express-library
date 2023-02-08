@@ -10,6 +10,7 @@ A minimal web server implementation based on express architecture uses only buil
     - [Error Handling](#error-handling)
     - [Static files Server](#static-files-server)
       - [Stackblitz example of serving static files from different sources](#stackblitz-example-of-serving-static-files-from-different-sources)
+  - [Router](#router)
   - [Benchmarking](#benchmarking)
     - [Basic api setup for mini-express-server and express](#basic-api-setup-for-mini-express-server-and-express)
     - [Commands executed for the tests](#commands-executed-for-the-tests)
@@ -203,6 +204,73 @@ app.listen(port, (address: any) => {
 
 [https://stackblitz.com/edit/node-u2qygg?file=index.js](https://stackblitz.com/edit/node-u2qygg?file=index.js)
 
+## Router
+
+Since version 1.0.8, we have introduced the class Router that allows the creation of modular, mountable route handlers. A Router instance is a complete middleware and routing system. With that, you can split your app logic, enabling the separation of concerns and improving the modularity of your app.
+Here an example of creation of CRUD operation over a class USER
+
+```javascript
+const { Router, ServerError } = require("mini-express-server");
+const { authorizationMidd } = require("../middlewares");
+const { User } = require("../models");
+
+const router = new Router(); /// Creating a instance of Router class
+
+///////// Custom middleware to get the user by the param :/userId ///////////
+const userByIdMiddleware = async (req, res, next) => {
+  const userId = req.params.userId;
+  const user = await User.getUserById(userId);
+  if (!user) throw new ServerError(404, `User with id=${userId} not found, try with other id`);
+  req.context.user = user;
+  next();
+};
+
+router.get("/", async (req, res) => {
+  let users = await User.getListUsers();
+  res.status(200).json({ data: users });
+});
+
+router.get("/:userId", userByIdMiddleware, async (req, res) => {
+  res.status(200).json({ data: req.context.user });
+});
+
+router.post("/", async (req, res) => {
+  let data = req.body;
+  let newUser = await User.createUser(data.name, data.lastName, data.age);
+  res.status(201).json({ data: newUser });
+});
+
+router.put("/:userId", userByIdMiddleware, async (req, res) => {
+  let user = req.context.user;
+  let data = req.body;
+  user = await User.editUser(user);
+  res.status(201).json({ data: user });
+});
+
+router.delete("/:userId", authorizationMidd, async (req, res) => {
+  if (req.loggedUser.id != req.params.userId) {
+    throw new ServerError(403, "Not allowed", ["you can edit other users"]);
+  }
+  let user = req.loggedUser;
+  await User.deleteUser(user.id);
+  res.status(200).json({ status: "Ok" });
+});
+
+module.exports = router;
+```
+
+In the main file fo your app you only have to do this:
+
+```javascript
+...
+const app = new AppServer();
+const userRouter = require("./routes/user.js");
+const port = 1234;
+...
+app.use("/api/user", userRouter);
+
+```
+
 ## Benchmarking
 
 We perform stress tests on an example API and compare it to express. We used the apache tool ab (Server benchmarking tool), and in the following setup, we got better results than ExpressJs.
@@ -301,6 +369,10 @@ for (let i = 0; i < 1000; i++) {
 | express             | 6.304 sec               | 1586.24                   | 220.647 ms              | 397 ms       |
 
 As you can appreciate in the results, the mini-express-server library beat the express library running the described test. Saving in the worsts case (where the API had more than 1000 endpoints) **100 ms in time per request**, **146 ms in the long request**, having half of the time for completing the test and increasing the capacity of requests per second to **1300** more than express.
+
+Also here there is a benchmark performed also agains fastify and mini-express-server got better results
+
+[Performing benchmark test to 3 JS backend libraries : express vs fastify vs mini-express-server.](https://www.youtube.com/watch?v=nZZkZ2bhwIw)
 
 ## AppServer
 
