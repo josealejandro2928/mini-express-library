@@ -18,7 +18,9 @@ export class RoutesTrie {
       pivot = pivot[part];
     }
     pivot.isFinal = true;
-    pivot.cbs = cbs;
+    const handlers: IMiddleware[] = pivot.cbs || [];
+    handlers.push(...cbs);
+    pivot.cbs = handlers;
   }
   has(route: string): boolean {
     const parts = route.split("/").filter(x => x != "");

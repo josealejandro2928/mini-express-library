@@ -15,7 +15,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 //////stressing the api//////////////
-for (let i = 0; i < 1000; i++) {
+for (let i = 0; i < 500; i++) {
     app.get(`/v1/endpoind/${i}`, (req, res) => {
         res.status(200).json({ "message": `Hello: ${i}` });
     })

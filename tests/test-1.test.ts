@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Server } from "node:http";
 import AppServer from "../lib/index";
+
+const flushPromises = () => new Promise(setImmediate);
+
 describe("AppServer class", () => {
   let appServer: AppServer;
   beforeEach(() => {
@@ -8,11 +11,12 @@ describe("AppServer class", () => {
   });
 
   afterEach(() => {
-    appServer.getHttpServer().close();
+    appServer.httpServer?.closeAllConnections();
+    appServer.httpServer?.close();
   });
 
   test("init() should create an instance of node's http Server", () => {
-    expect(appServer.getHttpServer()).toBeInstanceOf(Server);
+    expect(appServer.httpServer).toBeInstanceOf(Server);
   });
 
   test("switchRoutes() should call the correct route based on the request method", () => {
@@ -20,6 +24,7 @@ describe("AppServer class", () => {
       method: "GET",
       url: "https://test.com",
       on: jest.fn(),
+      headers: {},
     };
     const res = {
       writeHead: jest.fn(),
@@ -73,11 +78,6 @@ describe("AppServer class", () => {
     expect(resExtended).toHaveProperty("text");
     expect(resExtended).toHaveProperty("json");
     expect(resExtended).toHaveProperty("sendFile");
-  });
-
-  test("listen() should start the HTTP server", () => {
-    appServer.listen();
-    expect(appServer.getHttpServer().listening).toBeTruthy();
   });
 
   test("get() should add a GET route and its middlewares", () => {

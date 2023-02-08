@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { User } = require("./models");
+const { User } = require("../models");
 
 module.exports = {
     logReqMidd: (req, res, next) => {

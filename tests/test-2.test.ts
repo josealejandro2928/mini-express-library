@@ -19,6 +19,7 @@ describe("AppServer matching routes", () => {
       body: "Example body",
       params: {},
       query: {},
+      headers: {},
     };
     const res = {
       writeHead: jest.fn(),
@@ -92,6 +93,7 @@ describe("Error handling", () => {
       body: "Example body",
       params: {},
       query: {},
+      headers: {},
     };
     const res = {
       writeHead: jest.fn(),
