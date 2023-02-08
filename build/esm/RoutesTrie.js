@@ -11,7 +11,9 @@ export class RoutesTrie {
             pivot = pivot[part];
         }
         pivot.isFinal = true;
-        pivot.cbs = cbs;
+        const handlers = pivot.cbs || [];
+        handlers.push(...cbs);
+        pivot.cbs = handlers;
     }
     has(route) {
         const parts = route.split("/").filter(x => x != "");

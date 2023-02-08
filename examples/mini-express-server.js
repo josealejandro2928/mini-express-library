@@ -1,33 +1,62 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-
-const { AppServer } = require("mini-express-server")
+const { AppServer, ServerError } = require("../build/cjs/index.js");
+const path = require("node:path");
+const fs = require("node:fs");
 const morgan = require("morgan");
 const helmet = require("helmet");
 const cors = require('cors')
-const { jsonParser } = require("./middlewares.js");
-
+const { jsonParser } = require("./middlewares/index.js")
 const app = new AppServer();
+const userRouter = require("./routes/user.js");
 const port = 1234;
 
-app.use(morgan("common"));
-app.use(cors());
-app.use(helmet());
-app.use(jsonParser);
+// app.use(morgan("common"));
+// app.use(cors());
+// app.use(helmet());
+// app.use(jsonParser);
 
 //////stressing the api//////////////
-for (let i = 0; i < 1000; i++) {
+for (let i = 0; i < 500; i++) {
     app.get(`/v1/endpoind/${i}`, (req, res) => {
         res.status(200).json({ "message": `Hello: ${i}` });
     })
 }
 /////////////////////////////
 
-app.get(`/api`, (req, res) => {
+app.get("/api", (req, res) => {
     const { query, params, body, headers } = req;
     res.status(200).json({ query, params, body, headers });
 })
 
+app.use("/api/user", userRouter);
 
-app.listen(port, () => {
-    console.log("Server created by mini-express-server library listening: ", port)
+//////////////////////////// RENDER WEB PAGE //////////////////////////
+//////////////////Configuring the static route//////////////////////
+
+app.setStatic("/api/web/static", path.join(__dirname, ".", "static"))
+app.get("/api/web/:page/", (req, res, next) => {
+    let page = req.params.page;
+    let pagesRootPath = path.resolve("examples", "pages");
+    fs.readdir(pagesRootPath, { encoding: "utf8" }, (err, files) => {
+        if (err) {
+            next(err);
+        } else {
+            let fileFound = files.find((file) => file == (page + ".html"))
+            if (fileFound) return res.status(200).sendFile(path.resolve(pagesRootPath, fileFound));
+            return next(new ServerError(404, "Page not found", [{ "websites": files }]));
+        }
+    })
+})
+///////////////////////////////////////////////////////////////////////////////
+
+app.setErrorHandler((req, res, error) => {
+    console.error("There is an error: ", error);
+    let code = error.code && !isNaN(parseInt(error.code)) ? error.code : 500;
+    res.status(code).json({ message: error.message, error: true, meta: error.meta })
+})
+
+
+
+app.listen(port, (address) => {
+    console.log("Server created by mini-express-server library listening at: ", address)
 })

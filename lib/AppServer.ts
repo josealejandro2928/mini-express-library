@@ -15,6 +15,7 @@ import {
 import { RoutesTrie } from "./RoutesTrie";
 import { AddressInfo } from "node:net";
 import { ServerOptions } from "node:https";
+import Router from "./Router";
 const mime = require("mime-types");
 
 export default class AppServer {
@@ -379,15 +380,19 @@ const app: AppServer = new AppServer();
    * ```
 
    */
-  use(route: string | IMiddleware, cb: IMiddleware | undefined | null = null) {
+  use(route: string | IMiddleware, cb: IMiddleware | Router | undefined | null = null) {
     if (typeof route == "string") {
-      if (!cb) throw Error("There should be a callback function");
-      const executor: IMiddleware = cb;
+      if (!cb) throw Error("There should be a callback function or a router instance");
+      const executor: IMiddleware | Router = cb;
       // register in all maps
-      this.get(route, executor);
-      this.post(route, executor);
-      this.put(route, executor);
-      this.delete(route, executor);
+      if (executor instanceof Router) {
+        executor.insertRouterIntoAppServer(route, this);
+      } else {
+        this.get(route, executor);
+        this.post(route, executor);
+        this.put(route, executor);
+        this.delete(route, executor);
+      }
     }
     if (typeof route == "function") {
       if (cb) throw Error("Only one registration for the global use function");
@@ -401,42 +406,6 @@ const app: AppServer = new AppServer();
   ) {
     this.customErrorHandler = clientErrorHandler;
   }
-
-  // private getCompositionFromPath(pathStr = ""): string[] {
-  //   return pathStr.split("/").filter(x => x != "");
-  // }
-
-  // private routeMatching(req: IRequest, mapHandler: Map<string, IMiddleware[]>): IMiddleware[] {
-  //   // this return from an example pathName: /v1/user/1/visit -> ['v1','user','1','visit']
-  //   const reqPathComposition = this.getCompositionFromPath(req.pathName);
-
-  //   for (const route of mapHandler.keys()) {
-  //     const routeComposition = this.getCompositionFromPath(route);
-  //     if (routeComposition.length != reqPathComposition.length) continue;
-  //     let match = true;
-  //     const params: any = req.params;
-  //     for (let i = 0; i < reqPathComposition.length; i++) {
-  //       if (routeComposition[i].startsWith(":")) {
-  //         // we extract the params defined in the methods as :param
-  //         const param = routeComposition[i].split(":")[1];
-  //         params[param] = reqPathComposition[i];
-  //       } else {
-  //         // if in some segment of the route there is a miss match we break with inner loop and pass to the next possible declare endpoind
-  //         if (reqPathComposition[i] != routeComposition[i]) {
-  //           match = false;
-  //           break;
-  //         }
-  //       }
-  //     }
-  //     if (match) {
-  //       // If there is a match we return the array of middleware associate to the route declaration
-  //       req.params = params;
-  //       return mapHandler.get(route) as IMiddleware[];
-  //     }
-  //   }
-  //   // Not route handler found
-  //   return [];
-  // }
 
   /**
    *

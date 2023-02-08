@@ -5,6 +5,7 @@ import { Server } from "node:http";
 import { IMiddleware, IRequest, IResponse, ListenOptions, ServerError, StaticRouteMap } from "./models.class";
 import { AddressInfo } from "node:net";
 import { ServerOptions } from "node:https";
+import Router from "./Router";
 export default class AppServer {
     httpServer: Server<any, any> | undefined | null;
     private port;
@@ -216,7 +217,7 @@ export default class AppServer {
      * ```
   
      */
-    use(route: string | IMiddleware, cb?: IMiddleware | undefined | null): void;
+    use(route: string | IMiddleware, cb?: IMiddleware | Router | undefined | null): void;
     setErrorHandler(clientErrorHandler: (req: IRequest, res: IResponse, error: ServerError | Error | any) => any): void;
     /**
      *

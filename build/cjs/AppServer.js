@@ -17,6 +17,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const models_class_1 = require("./models.class");
 const RoutesTrie_1 = require("./RoutesTrie");
+const Router_1 = require("./Router");
 const mime = require("mime-types");
 class AppServer {
     constructor(options) {
@@ -361,13 +362,18 @@ class AppServer {
     use(route, cb = null) {
         if (typeof route == "string") {
             if (!cb)
-                throw Error("There should be a callback function");
+                throw Error("There should be a callback function or a router instance");
             const executor = cb;
             // register in all maps
-            this.get(route, executor);
-            this.post(route, executor);
-            this.put(route, executor);
-            this.delete(route, executor);
+            if (executor instanceof Router_1.default) {
+                executor.insertRouterIntoAppServer(route, this);
+            }
+            else {
+                this.get(route, executor);
+                this.post(route, executor);
+                this.put(route, executor);
+                this.delete(route, executor);
+            }
         }
         if (typeof route == "function") {
             if (cb)
@@ -379,39 +385,6 @@ class AppServer {
     setErrorHandler(clientErrorHandler) {
         this.customErrorHandler = clientErrorHandler;
     }
-    // private getCompositionFromPath(pathStr = ""): string[] {
-    //   return pathStr.split("/").filter(x => x != "");
-    // }
-    // private routeMatching(req: IRequest, mapHandler: Map<string, IMiddleware[]>): IMiddleware[] {
-    //   // this return from an example pathName: /v1/user/1/visit -> ['v1','user','1','visit']
-    //   const reqPathComposition = this.getCompositionFromPath(req.pathName);
-    //   for (const route of mapHandler.keys()) {
-    //     const routeComposition = this.getCompositionFromPath(route);
-    //     if (routeComposition.length != reqPathComposition.length) continue;
-    //     let match = true;
-    //     const params: any = req.params;
-    //     for (let i = 0; i < reqPathComposition.length; i++) {
-    //       if (routeComposition[i].startsWith(":")) {
-    //         // we extract the params defined in the methods as :param
-    //         const param = routeComposition[i].split(":")[1];
-    //         params[param] = reqPathComposition[i];
-    //       } else {
-    //         // if in some segment of the route there is a miss match we break with inner loop and pass to the next possible declare endpoind
-    //         if (reqPathComposition[i] != routeComposition[i]) {
-    //           match = false;
-    //           break;
-    //         }
-    //       }
-    //     }
-    //     if (match) {
-    //       // If there is a match we return the array of middleware associate to the route declaration
-    //       req.params = params;
-    //       return mapHandler.get(route) as IMiddleware[];
-    //     }
-    //   }
-    //   // Not route handler found
-    //   return [];
-    // }
     /**
      *
      * @param req  Instance of the IncomingMessage class
@@ -442,8 +415,12 @@ class AppServer {
                 this.errorHandler(req, res, error);
             }
             else {
-                const cb = handlersCb[index++];
                 try {
+                    if (index >= handlersCb.length)
+                        throw new models_class_1.ServerError(400, "Invalid use of chain of middlewares, the last cannot call function next to execute the next one.");
+                    const cb = handlersCb[index++];
+                    if (!cb)
+                        throw new models_class_1.ServerError(400, "The function to process is undefined");
                     yield cb(req, res, nextFunction);
                 }
                 catch (error) {
