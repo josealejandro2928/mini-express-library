@@ -13,11 +13,11 @@ for (let i = 0; i < 500; i++) {
 
 app.get(`/api`, (req, res) => {
     const { query, params, body, headers } = req;
-    res.status(200).json({ query, params, body, headers });
+    return { query, params, body, headers };
 })
 
 
 app.listen({ port: port }, (err, address) => {
     if (err) throw err
-    console.log("Server created by fastify library listening: ", port)
+    console.log("Server created by fastify library listening: ", address)
 })

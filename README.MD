@@ -37,7 +37,6 @@ import AppServer, { IRequest, IResponse } from 'mini-express-server';
 
 const app: AppServer = new AppServer();
 const morgan = require('morgan');
-const morgan = require("morgan");
 const helmet = require("helmet");
 const cors = require('cors')
 const { jsonParser } = require("./middlewares");
@@ -369,10 +368,6 @@ for (let i = 0; i < 1000; i++) {
 | express             | 6.304 sec               | 1586.24                   | 220.647 ms              | 397 ms       |
 
 As you can appreciate in the results, the mini-express-server library beat the express library running the described test. Saving in the worsts case (where the API had more than 1000 endpoints) **100 ms in time per request**, **146 ms in the long request**, having half of the time for completing the test and increasing the capacity of requests per second to **1300** more than express.
-
-Also here there is a benchmark performed also agains fastify and mini-express-server got better results
-
-[Performing benchmark test to 3 JS backend libraries : express vs fastify vs mini-express-server.](https://www.youtube.com/watch?v=nZZkZ2bhwIw)
 
 ## AppServer
 
