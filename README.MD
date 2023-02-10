@@ -18,6 +18,11 @@ A minimal web server implementation based on express architecture uses only buil
     - [Table of metrics](#table-of-metrics)
       - [Results for experiment one](#results-for-experiment-one)
       - [Results for experiment two](#results-for-experiment-two)
+    - [Benchmarking with autocannon](#benchmarking-with-autocannon)
+      - [mini-express-server](#mini-express-server-1)
+      - [koa](#koa)
+      - [express](#express)
+  - [Git Hub Examples](#git-hub-examples)
   - [AppServer](#appserver)
   - [Stackblitz example of basic API](#stackblitz-example-of-basic-api)
 
@@ -473,8 +478,10 @@ for (let i = 0; i < 1000; i++) {
 As you can appreciate in the results, the mini-express-server library beat the express library running the described test. Saving in the worsts case (where the API had more than 1000 endpoints) **100 ms in time per request**, **146 ms in the long request**, having half of the time for completing the test and increasing the capacity of requests per second to **1300** more than express.
 
 ### Benchmarking with autocannon
+
 In an example api configuration like:
-``` JavaScript
+
+```JavaScript
 // mini-express-server
 const { AppServer } = require("mini-express-server");
 const { generateRouteRandom } = require("../utils.js");
@@ -504,8 +511,10 @@ app.listen(port, (address) => {
     console.log("Server created by library: mini-express-server is listening on port:", address)
 })
 ```
+
 Example for express
-``` JavaScript
+
+```JavaScript
 // express
 const express = require("express");
 const { generateRouteRandom } = require("../utils.js");
@@ -538,7 +547,8 @@ app.listen(port, (address) => {
     console.log("Server created by library: express is listening on port:", address)
 })
 ```
-``` JavaScript
+
+```JavaScript
 // koa
 const Koa = require('koa')
 const Router = require('koa-router');
@@ -573,20 +583,31 @@ app.listen(port, () => {
     console.log("Server created by library: koaa is listening on port:", port)
 })
 ```
+
 We perform the test using autocannon with the command:
+
 ```sh
 autocannon -c 100 -d 10 -p 10 localhost:3000
 ```
+
 **And here the results**:
+
 #### mini-express-server
-![mini-express-server](https://user-images.githubusercontent.com/37028825/218147868-47ce03a2-ab20-48bd-b058-2b454d395d22.png)
+
+<img src="https://user-images.githubusercontent.com/37028825/218147868-47ce03a2-ab20-48bd-b058-2b454d395d22.png" height="250"/>
 
 #### koa
-![koa](https://user-images.githubusercontent.com/37028825/218147926-eaf49bd0-5a96-4b18-84c0-c3ee866e4b2b.png)
+
+<img src="https://user-images.githubusercontent.com/37028825/218147926-eaf49bd0-5a96-4b18-84c0-c3ee866e4b2b.png" height="250"/>
 
 #### express
-![express](https://user-images.githubusercontent.com/37028825/218147983-d406ff2b-29da-4743-9c56-9aaa1cee6d1f.png)
 
+<img src="https://user-images.githubusercontent.com/37028825/218147983-d406ff2b-29da-4743-9c56-9aaa1cee6d1f.png" height="250"/>
+
+## Git Hub Examples
+
+Here you can find more examples of using `mini-express-server`
+[https://github.com/josealejandro2928/examples-mini-express-server](https://github.com/josealejandro2928/examples-mini-express-server)
 
 ## AppServer
 
