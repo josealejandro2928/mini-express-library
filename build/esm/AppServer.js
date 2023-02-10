@@ -309,62 +309,34 @@ export default class AppServer {
      * This method allows the user to add a middleware to the middleware stack.
      * The middleware function is called in the order it was added.
      *
-     * You can create a global middleware for a especific path:
+     * You can create a global middleware for a specific path:
      * ```Typescript
-     * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-       const app: AppServer = new AppServer();
-       const port: number = +(process?.env?.PORT || 1234);
-      
-      let users:any[] = [];
-  
+     * ...
       app.use("/api/user/:id",(req: IRequest, res: IResponse, next)=>{
         console.log("THe user to access has id: ", req.params.id);
         next();
       })
-      
-      app.delete('/api/user/:id', (req: IRequest, res: IResponse) => {
-        let user = users.find((u)=>u.id == req.params.id);
-        if(!user) throw new ServerError(404, "User not found with the id=" + req.params.id);
-        users = users.filter((u)=>u.id != req.params.id);
-        return res.status(200).json({status:"OK"});
-      });
-      
-      app.listen(port, (address: any) => {
-        console.log('Server listening on: ', address);
-      });
+      ...
      * ```
-      Or a global one that it will be called for every endpoind
+      Or a global one that it will be called for every endpoint
      
-      * ```Typescript
-     * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-       import { IRequest } from 'mini-express-server';
-  constimport { CustomServerOptions } from './models.class';
-   app:import { createServer } from 'node:http';
-   AppServer = new AppServer();
-       const port: number = +(process?.env?.PORT || 1234);
-      
-      let users:any[] = [];
-  
+     * ```Typescript
+     *...
       app.use((req: IRequest, res: IResponse, next)=>{
         try {
-              let bodyJson = JSON.parse(req.body);
-              req.body = bodyJson;
-              next();
+            let bodyJson = JSON.parse(req.body);
+            req.body = bodyJson;
+            next();
           } catch (e) {
             next(new Error("The parsing to json fails"))
           }
       })
-      
-      app.delete('/api/user/:id', (req: IRequest, res: IResponse) => {
-        let user = users.find((u)=>u.id == req.params.id);
-        if(!user) throw new ServerError(404, "User not found with the id=" + req.params.id);
-        users = users.filter((u)=>u.id != req.params.id);
-        return res.status(200).json({status:"OK"});
-      });
-      
-      app.listen(port, (address: any) => {
-        console.log('Server listening on: ', address);
-      });
+      ...
+      Or to bind a path to a Router
+      ...
+      const userRouter   = require("./routes/user.js")
+      app.use("/user",userRouter)
+      ...
      * ```
   
      */
