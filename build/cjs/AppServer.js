@@ -50,38 +50,32 @@ class AppServer {
         const opts = Object.assign(Object.assign({}, basicOptions), options);
         this.opts = opts;
         if (!opts.httpVersion || opts.httpVersion == "HTTP1") {
-            this.httpServer = (0, node_http_1.createServer)(opts, (req, res) => {
-                let body = "";
-                req.on("data", (chunk) => {
-                    body += chunk;
-                });
-                req.on("end", () => {
-                    this.switchRoutes(req, res, body);
-                });
-                req.on("error", error => {
-                    res.writeHead(500, { "Content-Type": "text/html" });
-                    res.write(error.message);
-                });
-            });
+            this.httpServer = (0, node_http_1.createServer)(opts, this.handler.bind(this));
         }
         else if (opts.httpVersion == "HTTP2") {
-            this.httpServer = (0, node_http2_1.createServer)(opts, (req, res) => {
-                let body = "";
-                req.on("data", (chunk) => {
-                    body += chunk;
-                });
-                req.on("end", () => {
-                    this.switchRoutes(req, res, body);
-                });
-                req.on("error", error => {
-                    res.writeHead(500, { "Content-Type": "text/html" });
-                    res.write(error.message);
-                });
-            });
+            if (opts.key && opts.cert) {
+                this.httpServer = (0, node_http2_1.createSecureServer)(opts, this.handler.bind(this));
+            }
+            else {
+                this.httpServer = (0, node_http2_1.createServer)(opts, this.handler.bind(this));
+            }
         }
         else {
             throw new Error("Invalid server configuration params");
         }
+    }
+    handler(req, res) {
+        let body = "";
+        req.on("data", (chunk) => {
+            body += chunk;
+        });
+        req.on("end", () => {
+            this.switchRoutes(req, res, body);
+        });
+        req.on("error", error => {
+            res.writeHead(500, { "Content-Type": "text/html" });
+            res.write(error.message);
+        });
     }
     /**
      *
@@ -201,11 +195,11 @@ class AppServer {
             opts = basicOptions;
         }
         (_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.listen(this.port, opts.hostname, opts.backlog, () => {
-            var _a, _b;
+            var _a, _b, _c;
             if (cb) {
-                this.httpServer.keepAliveTimeout = 1000 * 30; // 30 minute;
-                const addressInf = ((_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.address()) || {};
-                addressInf["httpVersion"] = (_b = this.opts) === null || _b === void 0 ? void 0 : _b.httpVersion;
+                this.httpServer.keepAliveTimeout = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.keepAliveTimeout) || 10000; // 10 seconds
+                const addressInf = ((_b = this.httpServer) === null || _b === void 0 ? void 0 : _b.address()) || {};
+                addressInf["httpVersion"] = (_c = this.opts) === null || _c === void 0 ? void 0 : _c.httpVersion;
                 cb(addressInf);
             }
         });

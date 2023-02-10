@@ -1,6 +1,6 @@
 # mini-express-server
 
-A minimal web server implementation based on express architecture uses only built-in node modules like path, http, and fs. The core class is `AppServer`, which creates an instance of Server calling createServer from `node:http`. It listens to incoming requests and, based on the request method (GET, POST, PUT, DELETE), it calls the corresponding method handler, which is stored in a Tree Data Structure for fast matching between the incoming request and the registered routes (mapGetHandlers, mapPostHandlers, mapPutHandlers, mapDeleteHandlers). If the method is not supported, the Server returns a 405 status code with a "Not allowed" response.
+A minimal web server implementation based on express architecture uses only built-in node modules like path, http, http2, and fs. The core class is `AppServer`, which creates an instance of Server calling createServer from `node:http` and can create a server that implements a http2.0 protocol using `node:http2`. It listens to incoming requests and, based on the request method (GET, POST, PUT, DELETE). If the method is not supported, the Server returns a 405 status code with a "Not allowed" response.
 
 - [mini-express-server](#mini-express-server)
   - [installation](#installation)
@@ -11,6 +11,7 @@ A minimal web server implementation based on express architecture uses only buil
     - [Static files Server](#static-files-server)
       - [Stackblitz example of serving static files from different sources](#stackblitz-example-of-serving-static-files-from-different-sources)
   - [Router](#router)
+  - [Http2 Server](#http2-server)
   - [Benchmarking](#benchmarking)
     - [Basic api setup for mini-express-server and express](#basic-api-setup-for-mini-express-server-and-express)
     - [Commands executed for the tests](#commands-executed-for-the-tests)
@@ -47,7 +48,7 @@ const port: number = +(process?.env?.PORT || 1234);
 app.use(morgan('dev'));
 app.use(cors()); // Using the popular cors
 app.use(helmet()); // Using the popular helmet
-app.use(jsonParser); // Using a custon body parser for incoming request (The express classic body-parser is not compatible)
+app.use(jsonParser); // Using a custom body parser for incoming request (The express classic body-parser is not compatible)
 
 app.get('/', (req: IRequest, res: IResponse) => {
   console.log('Hello World');
@@ -146,7 +147,7 @@ app.get(`/error/2`, async (req, res, next) => {
   let asyncOp = new Promise((_, reject) => {
     setTimeout(() => {
       reject(
-        new ServerError(429, 'Too many requeest', [
+        new ServerError(429, 'Too many requests', [
           'To many request for this user',
           'Clean cookies',
         ])
@@ -188,7 +189,7 @@ const port: number = +(process?.env?.PORT || 1234);
 app.use(morgan('dev'));
 
 ...
-/// first the endpoint for static files, the other the root path of thte directory that contain the files
+/// first the endpoint for static files, the other the root path of the directory that contain the files
 app.setStatic('/static', path.join(__dirname, '..', 'public'));
 app.setStatic('/storage', path.join(__dirname, '..', 'storage'));
 ...
@@ -268,6 +269,108 @@ const port = 1234;
 ...
 app.use("/api/user", userRouter);
 
+```
+
+## Http2 Server
+
+The constructor of the class AppServer can receive an options object where you can pass through the createServer function, and you can configure here options like:
+
+```yaml
+keepAlive: true // default value
+connectionsCheckingInterval: 30000 // default value
+keepAliveInitialDelay: 0 // default value
+keepAliveTimeout: 5000 // default value
+maxHeaderSize: 16384 // default value
+noDelay: true // default value
+httpVersion: "HTTP1" //default value
+```
+
+In order to create a server with http2.0 protocol, you only have to pass the corresponding configuration; see the example below:
+
+```JavaScript
+const { AppServer } = require("../build/cjs/index");
+const app = new AppServer({ httpVersion: "HTTP2" })
+
+
+app.get("/", (req, res) => {
+    res.status(200).json({ message: "Hello from server", method: "GET" })
+})
+
+app.post("/", (req, res) => {
+    res.status(200).json({ message: "Hello from server", method: "POST", body: JSON.parse(req.body) })
+})
+
+app.put("/", (req, res) => {
+    res.status(200).json({ message: "Hello from server", method: "PUT", body: JSON.parse(req.body) })
+})
+
+app.get("/api", (req, res) => {
+    const { query, params, body, headers } = req;
+    res.status(200).json({ query, params, body, headers });
+})
+app.get("/api/:param1", (req, res) => {
+    const { query, params, body, headers } = req;
+    res.status(200).json({ query, params, body, headers });
+})
+
+app.listen(8000, (address) => {
+    console.log("Server listening: ", address)
+})
+```
+
+All the previous features the AppServer has will remain for the new server configuration; it only changes the protocol. You can use the router, the middlewares etc.
+also for testing this server the package provides a fetchClient http 2.0, see the example below:
+
+```JavaScript
+const { fetchHttp2 } = require("mini-express-server");
+
+async function main() {
+    const API_HOST = "http://127.0.0.1:8000"
+    try {
+
+        let res = await fetchHttp2(API_HOST);
+        let data = JSON.parse(res.data);
+        console.log("Response on res: ", data);
+        // Response on res:  { message: 'Hello from server', method: 'GET' }
+
+        res = await fetchHttp2(API_HOST, {
+            method: "POST",
+            body: JSON.stringify({ name: "Jose", age: 27, date: new Date() }),
+        });
+        data = JSON.parse(res.data);
+        console.log("Response on res: ", data);
+        /**
+        Response on res:  {
+                message: 'Hello from server',
+                method: 'POST',
+                body: { name: 'Jose', age: 27, date: '2023-02-10T13:30:51.992Z' }
+            }
+        */
+        res = await fetchHttp2(API_HOST, {
+            relativePath: "/api/exampleFullEndpoint/?limit=10&offset=5&status=enabled",
+        })
+        data = JSON.parse(res.data);
+        console.log("Response on res: ", data);
+        /**
+         * Response on res:  {
+            query: { limit: '10', offset: '5', status: 'enabled' },
+            params: { param1: 'exampleFullEndpoint' },
+            body: '',
+            headers: {
+                ':path': '/api/exampleFullEndpoint/?limit=10&offset=5&status=enabled',
+                ':method': 'GET',
+                ':authority': '127.0.0.1:8000',
+                ':scheme': 'http'
+            }
+        }
+         */
+
+    } catch (e) {
+        console.log("Error: ", e);
+    }
+}
+
+main();
 ```
 
 ## Benchmarking

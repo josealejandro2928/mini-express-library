@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createServer as createServerHttp1, } from "node:http";
-import { createServer as createServerHttp2, } from "node:http2";
+import { createServer as createServerHttp2, createSecureServer as createSecureServerHttp2, } from "node:http2";
 import * as url from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -41,38 +41,32 @@ export default class AppServer {
         const opts = { ...basicOptions, ...options };
         this.opts = opts;
         if (!opts.httpVersion || opts.httpVersion == "HTTP1") {
-            this.httpServer = createServerHttp1(opts, (req, res) => {
-                let body = "";
-                req.on("data", (chunk) => {
-                    body += chunk;
-                });
-                req.on("end", () => {
-                    this.switchRoutes(req, res, body);
-                });
-                req.on("error", error => {
-                    res.writeHead(500, { "Content-Type": "text/html" });
-                    res.write(error.message);
-                });
-            });
+            this.httpServer = createServerHttp1(opts, this.handler.bind(this));
         }
         else if (opts.httpVersion == "HTTP2") {
-            this.httpServer = createServerHttp2(opts, (req, res) => {
-                let body = "";
-                req.on("data", (chunk) => {
-                    body += chunk;
-                });
-                req.on("end", () => {
-                    this.switchRoutes(req, res, body);
-                });
-                req.on("error", error => {
-                    res.writeHead(500, { "Content-Type": "text/html" });
-                    res.write(error.message);
-                });
-            });
+            if (opts.key && opts.cert) {
+                this.httpServer = createSecureServerHttp2(opts, this.handler.bind(this));
+            }
+            else {
+                this.httpServer = createServerHttp2(opts, this.handler.bind(this));
+            }
         }
         else {
             throw new Error("Invalid server configuration params");
         }
+    }
+    handler(req, res) {
+        let body = "";
+        req.on("data", (chunk) => {
+            body += chunk;
+        });
+        req.on("end", () => {
+            this.switchRoutes(req, res, body);
+        });
+        req.on("error", error => {
+            res.writeHead(500, { "Content-Type": "text/html" });
+            res.write(error.message);
+        });
     }
     /**
      *
@@ -192,7 +186,7 @@ export default class AppServer {
         }
         this.httpServer?.listen(this.port, opts.hostname, opts.backlog, () => {
             if (cb) {
-                this.httpServer.keepAliveTimeout = 1000 * 30; // 30 minute;
+                this.httpServer.keepAliveTimeout = this.opts?.keepAliveTimeout || 10000; // 10 seconds
                 const addressInf = this.httpServer?.address() || {};
                 addressInf["httpVersion"] = this.opts?.httpVersion;
                 cb(addressInf);

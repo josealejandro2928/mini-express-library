@@ -63,4 +63,7 @@ export type ListenOptions = {
 };
 export interface CustomServerOptions extends ServerOptionsHttp1, ServerOptionsHttp2 {
     httpVersion?: "HTTP1" | "HTTP2";
+    key?: any;
+    cert?: any;
+    allowHTTP1?: boolean;
 }

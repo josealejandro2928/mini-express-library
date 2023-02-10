@@ -11,6 +11,7 @@ import {
   Http2ServerRequest,
   Http2ServerResponse,
   createServer as createServerHttp2,
+  createSecureServer as createSecureServerHttp2,
 } from "node:http2";
 
 import * as url from "node:url";
@@ -39,7 +40,7 @@ export default class AppServer {
   private mapDeleteHandlers: RoutesTrie = new RoutesTrie();
   private globalMiddlewares: IMiddleware[] = [];
   staticRouteMap: StaticRouteMap = {};
-  private opts:CustomServerOptions | undefined;
+  private opts: CustomServerOptions | undefined;
 
   customErrorHandler:
     | ((req: IRequest, res: IResponse, error: ServerError | Error | any) => any)
@@ -68,39 +69,30 @@ export default class AppServer {
     this.opts = opts;
 
     if (!opts.httpVersion || opts.httpVersion == "HTTP1") {
-      this.httpServer = createServerHttp1(opts, (req: IncomingMessage, res: ServerResponse) => {
-        let body = "";
-        req.on("data", (chunk: any) => {
-          body += chunk;
-        });
-        req.on("end", () => {
-          this.switchRoutes(req, res, body);
-        });
-        req.on("error", error => {
-          res.writeHead(500, { "Content-Type": "text/html" });
-          res.write(error.message);
-        });
-      });
+      this.httpServer = createServerHttp1(opts, this.handler.bind(this));
     } else if (opts.httpVersion == "HTTP2") {
-      this.httpServer = createServerHttp2(
-        opts,
-        (req: Http2ServerRequest, res: Http2ServerResponse) => {
-          let body = "";
-          req.on("data", (chunk: any) => {
-            body += chunk;
-          });
-          req.on("end", () => {
-            this.switchRoutes(req, res, body);
-          });
-          req.on("error", error => {
-            res.writeHead(500, { "Content-Type": "text/html" });
-            res.write(error.message);
-          });
-        }
-      );
+      if (opts.key && opts.cert) {
+        this.httpServer = createSecureServerHttp2(opts, this.handler.bind(this));
+      } else {
+        this.httpServer = createServerHttp2(opts, this.handler.bind(this));
+      }
     } else {
       throw new Error("Invalid server configuration params");
     }
+  }
+
+  handler(req: IncomingMessage | Http2ServerRequest, res: ServerResponse | Http2ServerResponse) {
+    let body = "";
+    req.on("data", (chunk: any) => {
+      body += chunk;
+    });
+    req.on("end", () => {
+      this.switchRoutes(req, res, body);
+    });
+    req.on("error", error => {
+      res.writeHead(500, { "Content-Type": "text/html" });
+      (res as any).write(error.message);
+    });
   }
 
   /**
@@ -113,7 +105,11 @@ export default class AppServer {
    * route handler based on the method of the request (e.g. GET, POST, PUT, DELETE). If the method is not one of these four,
    * a "Method Not Allowed" error is returned.
    */
-  private switchRoutes(req: IncomingMessage | Http2ServerRequest, res: ServerResponse | Http2ServerResponse, body: any): void {
+  private switchRoutes(
+    req: IncomingMessage | Http2ServerRequest,
+    res: ServerResponse | Http2ServerResponse,
+    body: any
+  ): void {
     const { req: reqExtended, res: resExtended } = this.extendReqRes(req, res, body);
     this.processReqResBasedOnClientHeaders(reqExtended, resExtended);
     if (req.method == "GET") {
@@ -233,8 +229,8 @@ export default class AppServer {
 
     this.httpServer?.listen(this.port, opts.hostname, opts.backlog, () => {
       if (cb) {
-        (this.httpServer as Server).keepAliveTimeout = 1000 * 30; // 30 minute;
-        const addressInf:any = this.httpServer?.address() || {};
+        (this.httpServer as Server).keepAliveTimeout = this.opts?.keepAliveTimeout || 10000; // 10 seconds
+        const addressInf: any = this.httpServer?.address() || {};
         addressInf["httpVersion"] = this.opts?.httpVersion;
         cb(addressInf);
       }
@@ -361,62 +357,34 @@ export default class AppServer {
    * This method allows the user to add a middleware to the middleware stack. 
    * The middleware function is called in the order it was added.
    * 
-   * You can create a global middleware for a especific path:
+   * You can create a global middleware for a specific path:
    * ```Typescript
-   * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-     const app: AppServer = new AppServer();
-     const port: number = +(process?.env?.PORT || 1234);
-    
-    let users:any[] = [];
-
+   * ...
     app.use("/api/user/:id",(req: IRequest, res: IResponse, next)=>{
       console.log("THe user to access has id: ", req.params.id);
       next();
     })
-    
-    app.delete('/api/user/:id', (req: IRequest, res: IResponse) => {
-      let user = users.find((u)=>u.id == req.params.id);
-      if(!user) throw new ServerError(404, "User not found with the id=" + req.params.id);
-      users = users.filter((u)=>u.id != req.params.id);
-      return res.status(200).json({status:"OK"});
-    });
-    
-    app.listen(port, (address: any) => {
-      console.log('Server listening on: ', address);
-    });
+    ...
    * ```
-    Or a global one that it will be called for every endpoind
+    Or a global one that it will be called for every endpoint
    
-    * ```Typescript
-   * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-     import { IRequest } from 'mini-express-server';
-constimport { CustomServerOptions } from './models.class';
- app:import { createServer } from 'node:http';
- AppServer = new AppServer();
-     const port: number = +(process?.env?.PORT || 1234);
-    
-    let users:any[] = [];
-
+   * ```Typescript
+   *...
     app.use((req: IRequest, res: IResponse, next)=>{
       try {
-            let bodyJson = JSON.parse(req.body);
-            req.body = bodyJson;
-            next();
+          let bodyJson = JSON.parse(req.body);
+          req.body = bodyJson;
+          next();
         } catch (e) {
           next(new Error("The parsing to json fails"))
         } 
     })
-    
-    app.delete('/api/user/:id', (req: IRequest, res: IResponse) => {
-      let user = users.find((u)=>u.id == req.params.id);
-      if(!user) throw new ServerError(404, "User not found with the id=" + req.params.id);
-      users = users.filter((u)=>u.id != req.params.id);
-      return res.status(200).json({status:"OK"});
-    });
-    
-    app.listen(port, (address: any) => {
-      console.log('Server listening on: ', address);
-    });
+    ...
+    Or to bind a path to a Router
+    ...
+    const userRouter   = require("./routes/user.js")
+    app.use("/user",userRouter)
+    ...
    * ```
 
    */

@@ -9,6 +9,7 @@ export type fetchHttp2Options = {
     [key: string]: string;
   };
   body?: string | Uint8Array;
+  ca?: any;
 };
 export type fetchHttpResponse = {
   status: number | string;
@@ -31,7 +32,10 @@ export async function fetchHttp2(
         headers: {},
       };
       const opts: fetchHttp2Options = { ...basicOptions, ...(options || {}) };
-      const clientSession: http2.ClientHttp2Session = http2.connect(serverHost);
+      const clientSession: http2.ClientHttp2Session = http2.connect(serverHost, {
+        ca: opts?.ca || null,
+        rejectUnauthorized: true,
+      });
       clientSession.once("error", err => {
         reject(err);
         clientSession.close();
@@ -43,8 +47,7 @@ export async function fetchHttp2(
           [HTTP2_HEADER_METHOD]: opts.method,
           ...(opts.headers || {}),
         });
-        if(opts.method != "GET")
-            req.write(opts.body || "", "utf8");
+        if (opts.method != "GET") req.write(opts.body || "", "utf8");
         req.end();
         req.on("response", headers => {
           const status: number | string = headers[HTTP2_HEADER_STATUS] as string;

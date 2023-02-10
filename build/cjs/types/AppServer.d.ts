@@ -1,8 +1,8 @@
 /// <reference types="node" />
 /// <reference types="node" />
 /// <reference types="node" />
-import { Server } from "node:http";
-import { Http2Server } from "node:http2";
+import { Server, IncomingMessage, ServerResponse } from "node:http";
+import { Http2Server, Http2ServerRequest, Http2ServerResponse } from "node:http2";
 import { CustomServerOptions, IMiddleware, IRequest, IResponse, ListenOptions, ServerError, StaticRouteMap } from "./models.class";
 import { AddressInfo } from "node:net";
 import Router from "./Router";
@@ -23,6 +23,7 @@ export default class AppServer {
      * This server listens for incoming requests and calls the switchRoutes.
      */
     private init;
+    handler(req: IncomingMessage | Http2ServerRequest, res: ServerResponse | Http2ServerResponse): void;
     /**
      *
      * @param req  Instance of the IncomingMessage class

@@ -16,7 +16,7 @@ app.use(bodyParser.json());
 
 //////stressing the api//////////////
 for (let i = 0; i < 500; i++) {
-    app.get(`/v1/endpoind/${i}`, (req, res) => {
+    app.get(`/v1/endpoint/${i}`, (req, res) => {
         res.status(200).json({ "message": `Hello: ${i}` });
     })
 }
