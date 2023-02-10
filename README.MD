@@ -472,6 +472,122 @@ for (let i = 0; i < 1000; i++) {
 
 As you can appreciate in the results, the mini-express-server library beat the express library running the described test. Saving in the worsts case (where the API had more than 1000 endpoints) **100 ms in time per request**, **146 ms in the long request**, having half of the time for completing the test and increasing the capacity of requests per second to **1300** more than express.
 
+### Benchmarking with autocannon
+In an example api configuration like:
+``` JavaScript
+// mini-express-server
+const { AppServer } = require("mini-express-server");
+const { generateRouteRandom } = require("../utils.js");
+
+const app = new AppServer();
+const port = 3000;
+
+////////// Generate a lot of random routes ///////////////
+for (let i = 0; i < 100; i++) {
+    app.get(generateRouteRandom("api", 3), (req, res) => {
+        return res.json({ hello: 'world' });
+    })
+}
+
+for (let i = 0; i < 100; i++) {
+    app.get(generateRouteRandom("home", 3), (req, res) => {
+        return res.json({ hello: 'world' });
+    })
+}
+//////////////////////////////////////////////////////////
+
+app.get("/", (req, res) => {
+    return res.json({ hello: 'world' });
+})
+
+app.listen(port, (address) => {
+    console.log("Server created by library: mini-express-server is listening on port:", address)
+})
+```
+Example for express
+``` JavaScript
+// express
+const express = require("express");
+const { generateRouteRandom } = require("../utils.js");
+
+const app = express();
+const port = 3000;
+
+app.disable('etag')
+app.disable('x-powered-by')
+
+////////// Generate a lot of random routes ///////////////
+for (let i = 0; i < 100; i++) {
+    app.get(generateRouteRandom("api", 3), (req, res) => {
+        return res.json({ hello: 'world' });
+    })
+}
+
+for (let i = 0; i < 100; i++) {
+    app.get(generateRouteRandom("home", 3), (req, res) => {
+        return res.json({ hello: 'world' });
+    })
+}
+//////////////////////////////////////////////////////////
+
+app.get("/", (req, res) => {
+    return res.json({ hello: 'world' });
+})
+
+app.listen(port, (address) => {
+    console.log("Server created by library: express is listening on port:", address)
+})
+```
+``` JavaScript
+// koa
+const Koa = require('koa')
+const Router = require('koa-router');
+const { generateRouteRandom } = require("../utils.js");
+const app = new Koa()
+
+const port = 3000;
+
+////////// Generate a lot of random routes ///////////////
+const routerBlok1 = new Router({ prefix: "/" });
+const routerBlok2 = new Router({ prefix: "/" });
+for (let i = 0; i < 100; i++) {
+    routerBlok1.get(generateRouteRandom("api", 3), ctx => {
+        ctx.body = { hello: 'world' }
+    })
+}
+
+for (let i = 0; i < 100; i++) {
+    routerBlok2.get(generateRouteRandom("home", 3), ctx => {
+        ctx.body = { hello: 'world' }
+    })
+}
+//////////////////////////////////////////////////////////
+app.use(routerBlok1.routes());
+app.use(routerBlok2.routes());
+
+app.use(ctx => {
+    ctx.body = { hello: 'world' }
+})
+
+app.listen(port, () => {
+    console.log("Server created by library: koaa is listening on port:", port)
+})
+```
+We perform the test using autocannon with the command:
+```sh
+autocannon -c 100 -d 10 -p 10 localhost:3000
+```
+**And here the results**:
+#### mini-express-server
+![mini-express-server](https://user-images.githubusercontent.com/37028825/218147868-47ce03a2-ab20-48bd-b058-2b454d395d22.png)
+
+#### koa
+![koa](https://user-images.githubusercontent.com/37028825/218147926-eaf49bd0-5a96-4b18-84c0-c3ee866e4b2b.png)
+
+#### express
+![express](https://user-images.githubusercontent.com/37028825/218147983-d406ff2b-29da-4743-9c56-9aaa1cee6d1f.png)
+
+
 ## AppServer
 
 The main class for the AppServer that creates the HTTP server and routes requests to the appropriate handlers.
