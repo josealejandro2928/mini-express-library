@@ -4,8 +4,8 @@ const path = require("node:path");
 const fs = require("node:fs");
 const morgan = require("morgan");
 const helmet = require("helmet");
+const bodyParser = require("body-parser");
 const cors = require('cors')
-const { jsonParser } = require("./middlewares/index.js")
 const app = new AppServer();
 const userRouter = require("./routes/user.js");
 const port = 1234;
@@ -14,11 +14,12 @@ const port = 1234;
 app.use(morgan("common"));
 app.use(cors());
 app.use(helmet());
-app.use(jsonParser);
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
 //////stressing the api//////////////
 for (let i = 0; i < 500; i++) {
-    app.get(`/v1/endpoind/${i}`, (req, res) => {
+    app.get(`/v1/endpoint/${i}`, (req, res) => {
         res.status(200).json({ "message": `Hello: ${i}` });
     })
 }

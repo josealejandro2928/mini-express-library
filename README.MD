@@ -45,7 +45,7 @@ const app: AppServer = new AppServer();
 const morgan = require('morgan');
 const helmet = require("helmet");
 const cors = require('cors')
-const { jsonParser } = require("./middlewares");
+const bodyParser = require("body-parser");
 
 const port: number = +(process?.env?.PORT || 1234);
 
@@ -53,7 +53,9 @@ const port: number = +(process?.env?.PORT || 1234);
 app.use(morgan('dev'));
 app.use(cors()); // Using the popular cors
 app.use(helmet()); // Using the popular helmet
-app.use(jsonParser); // Using a custom body parser for incoming request (The express classic body-parser is not compatible)
+app.use(bodyParser.json()); // Using body-parser
+app.use(bodyParser.urlencoded({ extended: false }));
+
 
 app.get('/', (req: IRequest, res: IResponse) => {
   console.log('Hello World');
@@ -394,7 +396,8 @@ const port = 1234;
 app.use(morgan("common"));
 app.use(cors());
 app.use(helmet());
-app.use(jsonParser);
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
 app.get(`/api`, (req, res) => {
     const { query, params, body, headers } = req;

@@ -1,9 +1,17 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { AppServer } = require("../build/cjs/index");
 const morgan = require("morgan");
+const helmet = require("helmet");
+const bodyParser = require("body-parser");
+const cors = require('cors')
+
 const app = new AppServer({ httpVersion: "HTTP2" })
 
-app.use(morgan("combined"));
+app.use(morgan("common"));
+app.use(cors());
+app.use(helmet());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
 app.get("/", (req, res) => {
     res.status(200).json({ message: "Hello from server", method: "GET" })
@@ -11,11 +19,11 @@ app.get("/", (req, res) => {
 
 app.post("/", (req, res) => {
     console.log(req.body);
-    res.status(200).json({ message: "Hello from server", method: "POST", body: JSON.parse(req.body) })
+    res.status(200).json({ message: "Hello from server", method: "POST", body: req.body })
 })
 
 app.put("/", (req, res) => {
-    res.status(200).json({ message: "Hello from server", method: "PUT", body: JSON.parse(req.body) })
+    res.status(200).json({ message: "Hello from server", method: "PUT", body: req.body })
 })
 
 app.get("/api", (req, res) => {

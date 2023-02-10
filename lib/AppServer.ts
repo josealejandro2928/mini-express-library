@@ -82,13 +82,7 @@ export default class AppServer {
   }
 
   handler(req: IncomingMessage | Http2ServerRequest, res: ServerResponse | Http2ServerResponse) {
-    let body = "";
-    req.on("data", (chunk: any) => {
-      body += chunk;
-    });
-    req.on("end", () => {
-      this.switchRoutes(req, res, body);
-    });
+    this.switchRoutes(req, res, null);
     req.on("error", error => {
       res.writeHead(500, { "Content-Type": "text/html" });
       (res as any).write(error.message);
@@ -437,7 +431,9 @@ export default class AppServer {
     }
 
     if (handlersCb.length == 0) {
-      return res.status(404).text("Not found");
+      const error = new ServerError(404, "Not Found");
+      this.errorHandler(req, res, error);
+      return;
     }
     handlersCb = [...this.globalMiddlewares, ...handlersCb];
     const nextFunction = async (error?: any) => {

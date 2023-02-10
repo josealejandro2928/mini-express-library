@@ -56,13 +56,7 @@ export default class AppServer {
         }
     }
     handler(req, res) {
-        let body = "";
-        req.on("data", (chunk) => {
-            body += chunk;
-        });
-        req.on("end", () => {
-            this.switchRoutes(req, res, body);
-        });
+        this.switchRoutes(req, res, null);
         req.on("error", error => {
             res.writeHead(500, { "Content-Type": "text/html" });
             res.write(error.message);
@@ -388,7 +382,9 @@ export default class AppServer {
             handlersCb = mapHandler.get(pathName, req);
         }
         if (handlersCb.length == 0) {
-            return res.status(404).text("Not found");
+            const error = new ServerError(404, "Not Found");
+            this.errorHandler(req, res, error);
+            return;
         }
         handlersCb = [...this.globalMiddlewares, ...handlersCb];
         const nextFunction = async (error) => {
