@@ -1,10 +1,23 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Server, IncomingMessage, ServerResponse, createServer } from "node:http";
+import {
+  Server,
+  IncomingMessage,
+  ServerResponse,
+  createServer as createServerHttp1,
+} from "node:http";
+import {
+  Http2Server,
+  Http2ServerRequest,
+  Http2ServerResponse,
+  createServer as createServerHttp2,
+} from "node:http2";
+
 import * as url from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
+  CustomServerOptions,
   IMiddleware,
   IRequest,
   IResponse,
@@ -14,12 +27,11 @@ import {
 } from "./models.class";
 import { RoutesTrie } from "./RoutesTrie";
 import { AddressInfo } from "node:net";
-import { ServerOptions } from "node:https";
 import Router from "./Router";
 const mime = require("mime-types");
 
 export default class AppServer {
-  httpServer: Server<any, any> | undefined | null = null;
+  httpServer: Server<any, any> | Http2Server | undefined | null = null;
   private port = 8888;
   private mapGetHandlers: RoutesTrie = new RoutesTrie();
   private mapPostHandlers: RoutesTrie = new RoutesTrie();
@@ -27,12 +39,13 @@ export default class AppServer {
   private mapDeleteHandlers: RoutesTrie = new RoutesTrie();
   private globalMiddlewares: IMiddleware[] = [];
   staticRouteMap: StaticRouteMap = {};
+  private opts:CustomServerOptions | undefined;
 
   customErrorHandler:
     | ((req: IRequest, res: IResponse, error: ServerError | Error | any) => any)
     | undefined;
 
-  constructor(options?: ServerOptions) {
+  constructor(options?: CustomServerOptions) {
     this.init(options);
     this.customErrorHandler = undefined;
   }
@@ -41,30 +54,53 @@ export default class AppServer {
    * This method initializes the httpServer attribute with a new HTTP server created using the createServer function from the http module.
    * This server listens for incoming requests and calls the switchRoutes.
    */
-  private init(options: ServerOptions = {}): void {
-    const basicOptions: ServerOptions = {
+  private init(options: CustomServerOptions = {}): void {
+    const basicOptions: CustomServerOptions = {
       keepAlive: true,
       connectionsCheckingInterval: 30000,
       keepAliveInitialDelay: 0,
       keepAliveTimeout: 5000,
       maxHeaderSize: 16385,
       noDelay: true,
+      httpVersion: "HTTP1",
     };
-    const opts = { ...basicOptions, ...options };
-    // console.log("server Opts:", opts);
-    this.httpServer = createServer(opts, (req: IncomingMessage, res: ServerResponse) => {
-      let body = "";
-      req.on("data", (chunk: any) => {
-        body += chunk;
+    const opts: CustomServerOptions = { ...basicOptions, ...options };
+    this.opts = opts;
+
+    if (!opts.httpVersion || opts.httpVersion == "HTTP1") {
+      this.httpServer = createServerHttp1(opts, (req: IncomingMessage, res: ServerResponse) => {
+        let body = "";
+        req.on("data", (chunk: any) => {
+          body += chunk;
+        });
+        req.on("end", () => {
+          this.switchRoutes(req, res, body);
+        });
+        req.on("error", error => {
+          res.writeHead(500, { "Content-Type": "text/html" });
+          res.write(error.message);
+        });
       });
-      req.on("end", () => {
-        this.switchRoutes(req, res, body);
-      });
-      req.on("error", error => {
-        res.writeHead(500, { "Content-Type": "text/html" });
-        res.write(error);
-      });
-    });
+    } else if (opts.httpVersion == "HTTP2") {
+      this.httpServer = createServerHttp2(
+        opts,
+        (req: Http2ServerRequest, res: Http2ServerResponse) => {
+          let body = "";
+          req.on("data", (chunk: any) => {
+            body += chunk;
+          });
+          req.on("end", () => {
+            this.switchRoutes(req, res, body);
+          });
+          req.on("error", error => {
+            res.writeHead(500, { "Content-Type": "text/html" });
+            res.write(error.message);
+          });
+        }
+      );
+    } else {
+      throw new Error("Invalid server configuration params");
+    }
   }
 
   /**
@@ -77,7 +113,7 @@ export default class AppServer {
    * route handler based on the method of the request (e.g. GET, POST, PUT, DELETE). If the method is not one of these four,
    * a "Method Not Allowed" error is returned.
    */
-  private switchRoutes(req: IncomingMessage, res: ServerResponse, body: any): void {
+  private switchRoutes(req: IncomingMessage | Http2ServerRequest, res: ServerResponse | Http2ServerResponse, body: any): void {
     const { req: reqExtended, res: resExtended } = this.extendReqRes(req, res, body);
     this.processReqResBasedOnClientHeaders(reqExtended, resExtended);
     if (req.method == "GET") {
@@ -105,8 +141,8 @@ export default class AppServer {
    * The extended res object includes methods for setting the status code, returning text or JSON data, or sending a file.
    */
   private extendReqRes(
-    req: IncomingMessage,
-    res: ServerResponse,
+    req: IncomingMessage | Http2ServerRequest,
+    res: ServerResponse | Http2ServerResponse,
     body: any = ""
   ): { req: IRequest; res: IResponse } {
     const parseUrl = url.parse(req.url as string, true);
@@ -198,7 +234,9 @@ export default class AppServer {
     this.httpServer?.listen(this.port, opts.hostname, opts.backlog, () => {
       if (cb) {
         (this.httpServer as Server).keepAliveTimeout = 1000 * 30; // 30 minute;
-        cb(this.httpServer?.address());
+        const addressInf:any = this.httpServer?.address() || {};
+        addressInf["httpVersion"] = this.opts?.httpVersion;
+        cb(addressInf);
       }
     }) as Server<any, any>;
   }
@@ -352,7 +390,9 @@ export default class AppServer {
     * ```Typescript
    * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
      import { IRequest } from 'mini-express-server';
-const app: AppServer = new AppServer();
+constimport { CustomServerOptions } from './models.class';
+ app:import { createServer } from 'node:http';
+ AppServer = new AppServer();
      const port: number = +(process?.env?.PORT || 1234);
     
     let users:any[] = [];

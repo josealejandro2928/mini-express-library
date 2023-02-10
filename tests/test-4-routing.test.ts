@@ -101,7 +101,7 @@ describe("Routing behavior with the AppServer Class", () => {
   });
 
   afterEach(() => {
-    appServer.httpServer?.closeAllConnections();
+    appServer?.httpServer?.close();
   });
 
   const flushPromises = () => new Promise(setImmediate);

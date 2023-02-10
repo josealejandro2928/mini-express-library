@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createServer } from "node:http";
+import { createServer as createServerHttp1, } from "node:http";
+import { createServer as createServerHttp2, } from "node:http2";
 import * as url from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -17,6 +18,7 @@ export default class AppServer {
     mapDeleteHandlers = new RoutesTrie();
     globalMiddlewares = [];
     staticRouteMap = {};
+    opts;
     customErrorHandler;
     constructor(options) {
         this.init(options);
@@ -34,22 +36,43 @@ export default class AppServer {
             keepAliveTimeout: 5000,
             maxHeaderSize: 16385,
             noDelay: true,
+            httpVersion: "HTTP1",
         };
         const opts = { ...basicOptions, ...options };
-        // console.log("server Opts:", opts);
-        this.httpServer = createServer(opts, (req, res) => {
-            let body = "";
-            req.on("data", (chunk) => {
-                body += chunk;
+        this.opts = opts;
+        if (!opts.httpVersion || opts.httpVersion == "HTTP1") {
+            this.httpServer = createServerHttp1(opts, (req, res) => {
+                let body = "";
+                req.on("data", (chunk) => {
+                    body += chunk;
+                });
+                req.on("end", () => {
+                    this.switchRoutes(req, res, body);
+                });
+                req.on("error", error => {
+                    res.writeHead(500, { "Content-Type": "text/html" });
+                    res.write(error.message);
+                });
             });
-            req.on("end", () => {
-                this.switchRoutes(req, res, body);
+        }
+        else if (opts.httpVersion == "HTTP2") {
+            this.httpServer = createServerHttp2(opts, (req, res) => {
+                let body = "";
+                req.on("data", (chunk) => {
+                    body += chunk;
+                });
+                req.on("end", () => {
+                    this.switchRoutes(req, res, body);
+                });
+                req.on("error", error => {
+                    res.writeHead(500, { "Content-Type": "text/html" });
+                    res.write(error.message);
+                });
             });
-            req.on("error", error => {
-                res.writeHead(500, { "Content-Type": "text/html" });
-                res.write(error);
-            });
-        });
+        }
+        else {
+            throw new Error("Invalid server configuration params");
+        }
     }
     /**
      *
@@ -170,7 +193,9 @@ export default class AppServer {
         this.httpServer?.listen(this.port, opts.hostname, opts.backlog, () => {
             if (cb) {
                 this.httpServer.keepAliveTimeout = 1000 * 30; // 30 minute;
-                cb(this.httpServer?.address());
+                const addressInf = this.httpServer?.address() || {};
+                addressInf["httpVersion"] = this.opts?.httpVersion;
+                cb(addressInf);
             }
         });
     }
@@ -319,7 +344,9 @@ export default class AppServer {
       * ```Typescript
      * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
        import { IRequest } from 'mini-express-server';
-  const app: AppServer = new AppServer();
+  constimport { CustomServerOptions } from './models.class';
+   app:import { createServer } from 'node:http';
+   AppServer = new AppServer();
        const port: number = +(process?.env?.PORT || 1234);
       
       let users:any[] = [];

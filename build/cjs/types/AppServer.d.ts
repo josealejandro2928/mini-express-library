@@ -2,12 +2,12 @@
 /// <reference types="node" />
 /// <reference types="node" />
 import { Server } from "node:http";
-import { IMiddleware, IRequest, IResponse, ListenOptions, ServerError, StaticRouteMap } from "./models.class";
+import { Http2Server } from "node:http2";
+import { CustomServerOptions, IMiddleware, IRequest, IResponse, ListenOptions, ServerError, StaticRouteMap } from "./models.class";
 import { AddressInfo } from "node:net";
-import { ServerOptions } from "node:https";
 import Router from "./Router";
 export default class AppServer {
-    httpServer: Server<any, any> | undefined | null;
+    httpServer: Server<any, any> | Http2Server | undefined | null;
     private port;
     private mapGetHandlers;
     private mapPostHandlers;
@@ -15,8 +15,9 @@ export default class AppServer {
     private mapDeleteHandlers;
     private globalMiddlewares;
     staticRouteMap: StaticRouteMap;
+    private opts;
     customErrorHandler: ((req: IRequest, res: IResponse, error: ServerError | Error | any) => any) | undefined;
-    constructor(options?: ServerOptions);
+    constructor(options?: CustomServerOptions);
     /**
      * This method initializes the httpServer attribute with a new HTTP server created using the createServer function from the http module.
      * This server listens for incoming requests and calls the switchRoutes.
@@ -189,7 +190,9 @@ export default class AppServer {
       * ```Typescript
      * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
        import { IRequest } from 'mini-express-server';
-  const app: AppServer = new AppServer();
+  constimport { CustomServerOptions } from './models.class';
+   app:import { createServer } from 'node:http';
+   AppServer = new AppServer();
        const port: number = +(process?.env?.PORT || 1234);
       
       let users:any[] = [];

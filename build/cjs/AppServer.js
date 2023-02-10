@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const node_http_1 = require("node:http");
+const node_http2_1 = require("node:http2");
 const url = require("node:url");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -44,22 +45,43 @@ class AppServer {
             keepAliveTimeout: 5000,
             maxHeaderSize: 16385,
             noDelay: true,
+            httpVersion: "HTTP1",
         };
         const opts = Object.assign(Object.assign({}, basicOptions), options);
-        // console.log("server Opts:", opts);
-        this.httpServer = (0, node_http_1.createServer)(opts, (req, res) => {
-            let body = "";
-            req.on("data", (chunk) => {
-                body += chunk;
+        this.opts = opts;
+        if (!opts.httpVersion || opts.httpVersion == "HTTP1") {
+            this.httpServer = (0, node_http_1.createServer)(opts, (req, res) => {
+                let body = "";
+                req.on("data", (chunk) => {
+                    body += chunk;
+                });
+                req.on("end", () => {
+                    this.switchRoutes(req, res, body);
+                });
+                req.on("error", error => {
+                    res.writeHead(500, { "Content-Type": "text/html" });
+                    res.write(error.message);
+                });
             });
-            req.on("end", () => {
-                this.switchRoutes(req, res, body);
+        }
+        else if (opts.httpVersion == "HTTP2") {
+            this.httpServer = (0, node_http2_1.createServer)(opts, (req, res) => {
+                let body = "";
+                req.on("data", (chunk) => {
+                    body += chunk;
+                });
+                req.on("end", () => {
+                    this.switchRoutes(req, res, body);
+                });
+                req.on("error", error => {
+                    res.writeHead(500, { "Content-Type": "text/html" });
+                    res.write(error.message);
+                });
             });
-            req.on("error", error => {
-                res.writeHead(500, { "Content-Type": "text/html" });
-                res.write(error);
-            });
-        });
+        }
+        else {
+            throw new Error("Invalid server configuration params");
+        }
     }
     /**
      *
@@ -179,10 +201,12 @@ class AppServer {
             opts = basicOptions;
         }
         (_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.listen(this.port, opts.hostname, opts.backlog, () => {
-            var _a;
+            var _a, _b;
             if (cb) {
                 this.httpServer.keepAliveTimeout = 1000 * 30; // 30 minute;
-                cb((_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.address());
+                const addressInf = ((_a = this.httpServer) === null || _a === void 0 ? void 0 : _a.address()) || {};
+                addressInf["httpVersion"] = (_b = this.opts) === null || _b === void 0 ? void 0 : _b.httpVersion;
+                cb(addressInf);
             }
         });
     }
@@ -331,7 +355,9 @@ class AppServer {
       * ```Typescript
      * import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
        import { IRequest } from 'mini-express-server';
-  const app: AppServer = new AppServer();
+  constimport { CustomServerOptions } from './models.class';
+   app:import { createServer } from 'node:http';
+   AppServer = new AppServer();
        const port: number = +(process?.env?.PORT || 1234);
       
       let users:any[] = [];

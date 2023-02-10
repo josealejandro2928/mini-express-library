@@ -11,8 +11,7 @@ describe("AppServer class", () => {
   });
 
   afterEach(() => {
-    appServer.httpServer?.closeAllConnections();
-    appServer.httpServer?.close();
+    appServer?.httpServer?.close();
   });
 
   test("init() should create an instance of node's http Server", () => {
