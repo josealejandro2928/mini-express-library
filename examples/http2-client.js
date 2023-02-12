@@ -3,10 +3,11 @@ const { fetchHttp2 } = require("../build/cjs/index");
 
 async function main() {
     const API_HOST = "http://127.0.0.1:8000"
+    let res;
+    let data;
     try {
-  
-        let res = await fetchHttp2(API_HOST);
-        let data = JSON.parse(res.data);
+        res = await fetchHttp2(API_HOST);
+        data = JSON.parse(res.data);
         console.log("Response on res: ", data);
         // Response on res:  { message: 'Hello from server', method: 'GET' }
 

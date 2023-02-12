@@ -359,7 +359,6 @@ const app: AppServer = new AppServer();
     this.mapPatchHandlers.set(route, ...cbs);
   }
 
-
   /**
    * 
    * @param route string | IMiddleware
@@ -437,7 +436,7 @@ const app: AppServer = new AppServer();
    * If there is no static route, it looks for a matching route in the routeMap object and calls the corresponding handler function for that route.
    * If there is no matching route, a "Not Found" error is returned.
    */
-  private routesHandler(req: IRequest, res: IResponse, mapHandler: RoutesTrie): void {
+  public routesHandler(req: IRequest, res: IResponse, mapHandler: RoutesTrie): void {
     let index = 0;
     const pathName = req.pathName;
     let handlersCb: IMiddleware[] = [];
@@ -500,7 +499,7 @@ const app: AppServer = new AppServer();
   //////////////STATIC FUNCTION//////////////////////////
   private handlerStatic(pathName: string, req: IRequest): boolean {
     let found = false;
-    if (req.method != "GET" && req.method != "HEAD" ) return false;
+    if (req.method != "GET" && req.method != "HEAD") return false;
     for (const route in this.staticRouteMap) {
       if (pathName.startsWith(route)) {
         found = true;

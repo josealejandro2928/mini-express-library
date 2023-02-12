@@ -29,9 +29,15 @@ export async function fetchHttp2(
       const basicOptions: fetchHttp2Options = {
         method: "GET",
         relativePath: "/",
-        headers: {},
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": "0",
+        },
       };
       const opts: fetchHttp2Options = { ...basicOptions, ...(options || {}) };
+      const buffer = Buffer.from(opts.body || "");
+      opts.headers["Content-Length"] = buffer.length + "";
+
       const clientSession: http2.ClientHttp2Session = http2.connect(serverHost, {
         ca: opts?.ca || null,
         rejectUnauthorized: true,
@@ -47,8 +53,9 @@ export async function fetchHttp2(
           [HTTP2_HEADER_METHOD]: opts.method,
           ...(opts.headers || {}),
         });
-        if (opts.method != "GET") req.write(opts.body || "", "utf8");
-        req.end();
+        if (opts.method != "GET") {
+          req.write(opts.body || "", "utf-8");
+        }
         req.on("response", headers => {
           const status: number | string = headers[HTTP2_HEADER_STATUS] as string;
           let dataResponse = "";
@@ -76,6 +83,7 @@ export async function fetchHttp2(
             clientSession.close();
           });
         });
+        req.end();
       });
     } catch (e) {
       reject(e);

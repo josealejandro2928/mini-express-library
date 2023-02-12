@@ -1,6 +1,6 @@
 # mini-express-server
 
-A minimal web server implementation based on express architecture uses only built-in node modules like path, http, http2, and fs. The core class is `AppServer`, which creates an instance of Server calling createServer from `node:http` and can create a server that implements a http2.0 protocol using `node:http2`. It listens to incoming requests and, based on the request method (GET, POST, PUT, DELETE). If the method is not supported, the Server returns a 405 status code with a "Not allowed" response.
+A minimal web server implementation based on express architecture uses only built-in node modules like path, http, http2, and fs. The core class is `AppServer`, which creates an instance of Server calling createServer from `node:http` and can create a server that implements a http2.0 protocol using `node:http2`. It listens to incoming requests and, based on the request method (GET, POST, PUT, DELETE, PATCH, HEAD). If the method is not supported, the Server returns a 405 status code with a "Not allowed" response.
 
 - [mini-express-server](#mini-express-server)
   - [installation](#installation)
@@ -248,6 +248,13 @@ router.post("/", async (req, res) => {
 });
 
 router.put("/:userId", userByIdMiddleware, async (req, res) => {
+  let user = req.context.user;
+  let data = req.body;
+  user = await User.editUser(user);
+  res.status(201).json({ data: user });
+});
+
+router.patch("/:userId", userByIdMiddleware, async (req, res) => {
   let user = req.context.user;
   let data = req.body;
   user = await User.editUser(user);
@@ -610,7 +617,10 @@ autocannon -c 100 -d 10 -p 10 localhost:3000
 ## Git Hub Examples
 
 Here you can find more examples of using `mini-express-server`
-[https://github.com/josealejandro2928/examples-mini-express-server](https://github.com/josealejandro2928/examples-mini-express-server)
+
+1. [Basic CRUD Rest API, usage: middlewares like cors, body-parser, cookie-parser, ect.](https://github.com/josealejandro2928/examples-mini-express-server/tree/master/basic-crud)
+2. [Basic server to upload and serving files.](https://github.com/josealejandro2928/examples-mini-express-server/tree/master/upload-files)
+3. [Serving html pages](https://github.com/josealejandro2928/examples-mini-express-server/tree/master/serving-web-pages)
 
 ## AppServer
 

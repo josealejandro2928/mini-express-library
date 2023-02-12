@@ -19,6 +19,7 @@ app.get("/", (req, res) => {
 
 app.post("/", (req, res) => {
     console.log(req.body);
+    console.log(req.headers);
     res.status(200).json({ message: "Hello from server", method: "POST", body: req.body })
 })
 
