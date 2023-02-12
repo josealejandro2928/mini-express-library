@@ -83,10 +83,6 @@ export default class AppServer {
 
   handler(req: IncomingMessage | Http2ServerRequest, res: ServerResponse | Http2ServerResponse) {
     this.switchRoutes(req, res, null);
-    req.on("error", error => {
-      res.writeHead(500, { "Content-Type": "text/html" });
-      (res as any).write(error.message);
-    });
   }
 
   /**
@@ -150,6 +146,8 @@ export default class AppServer {
       this.statusCode = statusCode;
       return this;
     };
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const appServerInstance: AppServer = this;
     newResponse.text = function (data: string) {
       data = data.toString();
       this.writeHead(this.statusCode, { "Content-Type": "text/html" });
@@ -179,14 +177,19 @@ export default class AppServer {
     newResponse.sendFile = function (pathFile: string) {
       const fileReader = fs.createReadStream(pathFile);
       const contentType = mime.contentType(path.extname(pathFile));
-      this.writeHead(this.statusCode, { "Content-Type": contentType });
       fileReader.pipe(this);
-      fileReader.once("error", error => {
-        this.statusCode = 500;
-        this.write(error.message.toString());
-        this.end();
+
+      const errorHandler = (error: any) => {
+        appServerInstance.errorHandler(newRequest, this, error);
+      };
+
+      fileReader.once("ready", () => {
+        this.writeHead(this.statusCode, { "Content-Type": contentType });
       });
+
+      fileReader.once("error", errorHandler);
       this.once("finish", () => {
+        fileReader.removeListener("error", errorHandler);
         this.end();
       });
     };
@@ -322,7 +325,8 @@ export default class AppServer {
    * This method maps a DELETE request route to one or more middleware functions. The middleware functions will be called in order for each DELETE request that matches the specified route.
    * ```TypeScript
     import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-    const app: AppServer = new AppServer();
+    import { ServerError } from 'mini-express-server';
+const app: AppServer = new AppServer();
     const port: number = +(process?.env?.PORT || 1234);
     
     let users:any[] = [];
@@ -425,7 +429,7 @@ export default class AppServer {
     const pathName = req.pathName;
     let handlersCb: IMiddleware[] = [];
     if (this.handlerStatic(pathName, req)) {
-      handlersCb.push(this.getstaticMiddleware());
+      handlersCb.push(this.getStaticMiddleware());
     } else {
       handlersCb = mapHandler.get(pathName, req);
     }
@@ -492,11 +496,11 @@ export default class AppServer {
     if (!fs.existsSync(pathToStaticDir))
       throw new Error("THe path to static directory does not exists");
     if (!fs.statSync(pathToStaticDir).isDirectory())
-      throw new Error("The static path shoulb be referenced to a directory");
+      throw new Error("The static path should be referenced to a directory");
     this.staticRouteMap[route] = pathToStaticDir;
   }
 
-  private getstaticMiddleware(): IMiddleware {
+  private getStaticMiddleware(): IMiddleware {
     return (req: IRequest, res: IResponse, next) => {
       const pathName: string = req.pathName;
       const staticFolder: string = (req as any).__DIR_STATIC_REFERENCED;
@@ -506,21 +510,34 @@ export default class AppServer {
         const fullPath = path.join(staticFolder, segmentPath);
         fs.stat(fullPath, (error, stats) => {
           if (error) {
-            return res.status(404).text(error.message);
+            const serverError = new ServerError(404, error.message, [error]);
+            this.errorHandler(req, res, serverError);
+            return;
           }
           if (stats.isDirectory()) {
-            return res.status(404).text("Not found");
+            const serverError = new ServerError(404, "Not allowed directories files", [error]);
+            this.errorHandler(req, res, serverError);
+            return;
           }
-          res.writeHead(200, {
-            "Content-Type": mime.contentType(path.extname(fullPath)),
-            "Content-Length": stats.size,
-          });
+
           const readStream = fs.createReadStream(fullPath);
           readStream.pipe(res);
-          readStream.once("error", error => {
-            return res.status(404).text(error.message);
+
+          const errorHandling = (error: any) => {
+            const serverError = new ServerError(404, error.message, [error]);
+            this.errorHandler(req, res, serverError);
+          };
+
+          readStream.once("ready", () => {
+            res.writeHead(200, {
+              "Content-Type": mime.contentType(path.extname(fullPath)),
+              "Content-Length": stats.size,
+            });
           });
+
+          readStream.once("error", errorHandling);
           readStream.once("end", () => {
+            readStream.removeListener("error", errorHandling);
             res.end();
           });
         });

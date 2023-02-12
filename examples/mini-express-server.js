@@ -30,6 +30,10 @@ app.get("/api", (req, res) => {
     res.status(200).json({ query, params, body, headers });
 })
 
+app.get("/api/error", (req, res) => {
+    res.status(200).sendFile("./static/home/style.css3");
+})
+
 app.use("/api/user", userRouter);
 
 //////////////////////////// RENDER WEB PAGE //////////////////////////

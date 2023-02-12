@@ -689,7 +689,7 @@ The main class for the AppServer that creates the HTTP server and routes request
 
 - **use(route:String ,middleware: IMiddleware)**
 
-  Registers a middleware for a spesific route.
+  Registers a middleware for a specific route.
 
   - Parameters
     - `route`: A path route.

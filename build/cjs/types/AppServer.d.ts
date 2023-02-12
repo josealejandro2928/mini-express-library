@@ -136,7 +136,8 @@ export default class AppServer {
      * This method maps a DELETE request route to one or more middleware functions. The middleware functions will be called in order for each DELETE request that matches the specified route.
      * ```TypeScript
       import AppServer, { IRequest, IResponse,ServerError } from 'mini-express-server';
-      const app: AppServer = new AppServer();
+      import { ServerError } from 'mini-express-server';
+  const app: AppServer = new AppServer();
       const port: number = +(process?.env?.PORT || 1234);
       
       let users:any[] = [];
@@ -211,5 +212,5 @@ export default class AppServer {
     getHttpServer(): Server;
     private handlerStatic;
     setStatic(route: string, pathToStaticDir: string): void;
-    private getstaticMiddleware;
+    private getStaticMiddleware;
 }
