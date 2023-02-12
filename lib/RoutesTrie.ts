@@ -35,7 +35,7 @@ export class RoutesTrie {
   }
 
   get(route: string, req: IRequest): IMiddleware[] {
-    const params: { [key: string]: string } = { ...req.params };
+    const params: { [key: string]: string } = {}
     const parts = route.split("/").filter(x => x != "");
     let pivot: RoutesTrieTree = this.tree;
     for (const part of parts) {

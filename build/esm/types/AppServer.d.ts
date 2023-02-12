@@ -13,6 +13,7 @@ export default class AppServer {
     private mapPostHandlers;
     private mapPutHandlers;
     private mapDeleteHandlers;
+    private mapPatchHandlers;
     private globalMiddlewares;
     staticRouteMap: StaticRouteMap;
     private opts;
@@ -155,6 +156,7 @@ export default class AppServer {
   ```
      */
     delete(route: string, ...cbs: IMiddleware[]): void;
+    patch(route: string, ...cbs: IMiddleware[]): void;
     /**
      *
      * @param route string | IMiddleware

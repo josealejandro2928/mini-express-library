@@ -38,6 +38,7 @@ export default class AppServer {
   private mapPostHandlers: RoutesTrie = new RoutesTrie();
   private mapPutHandlers: RoutesTrie = new RoutesTrie();
   private mapDeleteHandlers: RoutesTrie = new RoutesTrie();
+  private mapPatchHandlers: RoutesTrie = new RoutesTrie();
   private globalMiddlewares: IMiddleware[] = [];
   staticRouteMap: StaticRouteMap = {};
   private opts: CustomServerOptions | undefined;
@@ -102,17 +103,24 @@ export default class AppServer {
   ): void {
     const { req: reqExtended, res: resExtended } = this.extendReqRes(req, res, body);
     this.processReqResBasedOnClientHeaders(reqExtended, resExtended);
-    if (req.method == "GET") {
+    if (req.method == "GET" || req.method == "HEAD") {
       this.routesHandler(reqExtended, resExtended, this.mapGetHandlers);
-    } else if (req.method == "POST") {
+    } else if (req.method == "POST" || req.method == "HEAD") {
       this.routesHandler(reqExtended, resExtended, this.mapPostHandlers);
-    } else if (req.method == "PUT") {
+    } else if (req.method == "PUT" || req.method == "HEAD") {
       this.routesHandler(reqExtended, resExtended, this.mapPutHandlers);
-    } else if (req.method == "DELETE") {
+    } else if (req.method == "DELETE" || req.method == "HEAD") {
       this.routesHandler(reqExtended, resExtended, this.mapDeleteHandlers);
+    } else if (req.method == "PATCH" || req.method == "HEAD") {
+      this.routesHandler(reqExtended, resExtended, this.mapPatchHandlers);
     } else {
-      resExtended.writeHead(405, { "Content-Type": "text/html" });
-      resExtended.write("Not allowed");
+      this.errorHandler(
+        reqExtended,
+        resExtended,
+        new ServerError(405, "Not allowed", [
+          "The allowed methods are: 'GET','POST','PUT','DELETE','PATCH','HEAD'",
+        ])
+      );
     }
   }
 
@@ -347,6 +355,11 @@ const app: AppServer = new AppServer();
     this.mapDeleteHandlers.set(route, ...cbs);
   }
 
+  patch(route: string, ...cbs: IMiddleware[]): void {
+    this.mapPatchHandlers.set(route, ...cbs);
+  }
+
+
   /**
    * 
    * @param route string | IMiddleware
@@ -439,11 +452,15 @@ const app: AppServer = new AppServer();
       this.errorHandler(req, res, error);
       return;
     }
-    handlersCb = [...this.globalMiddlewares, ...handlersCb];
+    if (this.globalMiddlewares.length) {
+      handlersCb = [...this.globalMiddlewares, ...handlersCb];
+    }
+
     const nextFunction = async (error?: any) => {
       if (error) {
         this.errorHandler(req, res, error);
       } else {
+        let result: any;
         try {
           if (index >= handlersCb.length)
             throw new ServerError(
@@ -452,7 +469,11 @@ const app: AppServer = new AppServer();
             );
           const cb: IMiddleware = handlersCb[index++];
           if (!cb) throw new ServerError(400, "The function to process is undefined");
-          await cb(req, res, nextFunction);
+
+          result = cb(req, res, nextFunction);
+          if (result && typeof result.then === "function") {
+            result.then(null, (e: any) => this.errorHandler(req, res, e));
+          }
         } catch (error: any) {
           this.errorHandler(req, res, error);
         }
@@ -479,7 +500,7 @@ const app: AppServer = new AppServer();
   //////////////STATIC FUNCTION//////////////////////////
   private handlerStatic(pathName: string, req: IRequest): boolean {
     let found = false;
-    if (req.method != "GET") return false;
+    if (req.method != "GET" && req.method != "HEAD" ) return false;
     for (const route in this.staticRouteMap) {
       if (pathName.startsWith(route)) {
         found = true;
