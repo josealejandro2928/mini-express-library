@@ -28,6 +28,7 @@ class AppServer {
         this.mapPostHandlers = new RoutesTrie_1.RoutesTrie();
         this.mapPutHandlers = new RoutesTrie_1.RoutesTrie();
         this.mapDeleteHandlers = new RoutesTrie_1.RoutesTrie();
+        this.mapPatchHandlers = new RoutesTrie_1.RoutesTrie();
         this.globalMiddlewares = [];
         this.staticRouteMap = {};
         this.init(options);
@@ -80,21 +81,25 @@ class AppServer {
     switchRoutes(req, res, body) {
         const { req: reqExtended, res: resExtended } = this.extendReqRes(req, res, body);
         this.processReqResBasedOnClientHeaders(reqExtended, resExtended);
-        if (req.method == "GET") {
+        if (req.method == "GET" || req.method == "HEAD") {
             this.routesHandler(reqExtended, resExtended, this.mapGetHandlers);
         }
-        else if (req.method == "POST") {
+        else if (req.method == "POST" || req.method == "HEAD") {
             this.routesHandler(reqExtended, resExtended, this.mapPostHandlers);
         }
-        else if (req.method == "PUT") {
+        else if (req.method == "PUT" || req.method == "HEAD") {
             this.routesHandler(reqExtended, resExtended, this.mapPutHandlers);
         }
-        else if (req.method == "DELETE") {
+        else if (req.method == "DELETE" || req.method == "HEAD") {
             this.routesHandler(reqExtended, resExtended, this.mapDeleteHandlers);
         }
+        else if (req.method == "PATCH" || req.method == "HEAD") {
+            this.routesHandler(reqExtended, resExtended, this.mapPatchHandlers);
+        }
         else {
-            resExtended.writeHead(405, { "Content-Type": "text/html" });
-            resExtended.write("Not allowed");
+            this.errorHandler(reqExtended, resExtended, new models_class_1.ServerError(405, "Not allowed", [
+                "The allowed methods are: 'GET','POST','PUT','DELETE','PATCH','HEAD'",
+            ]));
         }
     }
     /**
@@ -307,6 +312,9 @@ class AppServer {
     delete(route, ...cbs) {
         this.mapDeleteHandlers.set(route, ...cbs);
     }
+    patch(route, ...cbs) {
+        this.mapPatchHandlers.set(route, ...cbs);
+    }
     /**
      *
      * @param route string | IMiddleware
@@ -398,19 +406,25 @@ class AppServer {
             this.errorHandler(req, res, error);
             return;
         }
-        handlersCb = [...this.globalMiddlewares, ...handlersCb];
+        if (this.globalMiddlewares.length) {
+            handlersCb = [...this.globalMiddlewares, ...handlersCb];
+        }
         const nextFunction = (error) => __awaiter(this, void 0, void 0, function* () {
             if (error) {
                 this.errorHandler(req, res, error);
             }
             else {
+                let result;
                 try {
                     if (index >= handlersCb.length)
                         throw new models_class_1.ServerError(400, "Invalid use of chain of middlewares, the last cannot call function next to execute the next one.");
                     const cb = handlersCb[index++];
                     if (!cb)
                         throw new models_class_1.ServerError(400, "The function to process is undefined");
-                    yield cb(req, res, nextFunction);
+                    result = cb(req, res, nextFunction);
+                    if (result && typeof result.then === "function") {
+                        result.then(null, (e) => this.errorHandler(req, res, e));
+                    }
                 }
                 catch (error) {
                     this.errorHandler(req, res, error);
@@ -436,7 +450,7 @@ class AppServer {
     //////////////STATIC FUNCTION//////////////////////////
     handlerStatic(pathName, req) {
         let found = false;
-        if (req.method != "GET")
+        if (req.method != "GET" && req.method != "HEAD")
             return false;
         for (const route in this.staticRouteMap) {
             if (pathName.startsWith(route)) {

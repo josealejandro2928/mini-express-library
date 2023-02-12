@@ -4,6 +4,7 @@
 import { Server, IncomingMessage, ServerResponse } from "node:http";
 import { Http2Server, Http2ServerRequest, Http2ServerResponse } from "node:http2";
 import { CustomServerOptions, IMiddleware, IRequest, IResponse, ListenOptions, ServerError, StaticRouteMap } from "./models.class";
+import { RoutesTrie } from "./RoutesTrie";
 import { AddressInfo } from "node:net";
 import Router from "./Router";
 export default class AppServer {
@@ -13,6 +14,7 @@ export default class AppServer {
     private mapPostHandlers;
     private mapPutHandlers;
     private mapDeleteHandlers;
+    private mapPatchHandlers;
     private globalMiddlewares;
     staticRouteMap: StaticRouteMap;
     private opts;
@@ -155,6 +157,7 @@ export default class AppServer {
   ```
      */
     delete(route: string, ...cbs: IMiddleware[]): void;
+    patch(route: string, ...cbs: IMiddleware[]): void;
     /**
      *
      * @param route string | IMiddleware
@@ -207,7 +210,7 @@ export default class AppServer {
      * If there is no static route, it looks for a matching route in the routeMap object and calls the corresponding handler function for that route.
      * If there is no matching route, a "Not Found" error is returned.
      */
-    private routesHandler;
+    routesHandler(req: IRequest, res: IResponse, mapHandler: RoutesTrie): void;
     private errorHandler;
     getHttpServer(): Server;
     private handlerStatic;

@@ -59,12 +59,12 @@ class User {
 
 }
 let users = [new User("Jose", "Alejandro", 27), new User("Carlos", "Perez", 20)]
-const populate = () => {
-    for (let i = 0; i < 100; i++) {
-        users.push(new User(`user-name-${i}`, `user-lastname-${i}`, 10 + Math.floor(Math.random() * 100)))
-    }
-}
-populate();
+// const populate = () => {
+//     for (let i = 0; i < 100; i++) {
+//         users.push(new User(`user-name-${i}`, `user-lastname-${i}`, 10 + Math.floor(Math.random() * 100)))
+//     }
+// }
+// populate();
 module.exports = {
     User: User,
 }

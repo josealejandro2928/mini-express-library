@@ -5,13 +5,19 @@ const port = 1236;
 
 //////stressing the api//////////////
 for (let i = 0; i < 500; i++) {
-    app.get(`/v1/endpoint/${i}`, (req, res) => {
-        res.status(200).json({ "message": `Hello: ${i}` });
+    app.get(`/api/endpoint/${i}`, (req, res) => {
+        return { "message": `Hello: ${i}` };
     })
 }
 /////////////////////////////
 
-app.get(`/api`, (req, res) => {
+app.get('/', async (req, res) => {
+    const { query, params, body, headers } = req;
+    return { query, params, body, headers };
+})
+
+
+app.get('/api', async (req, res) => {
     const { query, params, body, headers } = req;
     return { query, params, body, headers };
 })

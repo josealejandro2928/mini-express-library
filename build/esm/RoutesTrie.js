@@ -27,7 +27,7 @@ export class RoutesTrie {
         return pivot.isFinal;
     }
     get(route, req) {
-        const params = { ...req.params };
+        const params = {};
         const parts = route.split("/").filter(x => x != "");
         let pivot = this.tree;
         for (const part of parts) {

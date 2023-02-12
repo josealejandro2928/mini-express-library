@@ -6,6 +6,7 @@ export default class Router {
   private mapPostHandlers: Map<string, IMiddleware[]> = new Map<string, IMiddleware[]>();
   private mapPutHandlers: Map<string, IMiddleware[]> = new Map<string, IMiddleware[]>();
   private mapDeleteHandlers: Map<string, IMiddleware[]> = new Map<string, IMiddleware[]>();
+  private mapPatchHandlers: Map<string, IMiddleware[]> = new Map<string, IMiddleware[]>();
 
   get(route: string, ...cbs: IMiddleware[]): void {
     if (!route.startsWith("/")) throw new Error('The route must start with "/"');
@@ -35,6 +36,13 @@ export default class Router {
     this.mapDeleteHandlers.set(route, handlers);
   }
 
+  patch(route: string, ...cbs: IMiddleware[]): void {
+    if (!route.startsWith("/")) throw new Error('The route must start with "/"');
+    const handlers: IMiddleware[] = this.mapPatchHandlers.get(route) || [];
+    handlers.push(...cbs);
+    this.mapPatchHandlers.set(route, handlers);
+  }
+
   use(...args: any[]) {
     if (typeof args[0] == "string") {
       for (let i = 1; i < args.length; i++) {
@@ -46,6 +54,7 @@ export default class Router {
       this.post(route, ...cbs);
       this.put(route, ...cbs);
       this.delete(route, ...cbs);
+      this.patch(route, ...cbs);
     } else {
       for (let i = 0; i < args.length; i++) {
         if (typeof args[i] != "function") throw new Error("The executors must be callables");
@@ -61,6 +70,9 @@ export default class Router {
       }
       for (const key of this.mapDeleteHandlers.keys()) {
         this.mapDeleteHandlers.get(key)?.push(...args);
+      }
+      for (const key of this.mapPatchHandlers.keys()) {
+        this.mapPatchHandlers.get(key)?.push(...args);
       }
     }
   }
@@ -85,6 +97,11 @@ export default class Router {
       const newRoute = route + "/" + keySegment;
       const cbs: IMiddleware[] = this.mapDeleteHandlers.get(keySegment) || [];
       appServer.delete(newRoute, ...cbs);
+    }
+    for (const keySegment of this.mapPatchHandlers.keys()) {
+      const newRoute = route + "/" + keySegment;
+      const cbs: IMiddleware[] = this.mapPatchHandlers.get(keySegment) || [];
+      appServer.patch(newRoute, ...cbs);
     }
   }
 }
