@@ -27,7 +27,7 @@ for (let i = 0; i < 500; i++) {
 
 app.get("/", async (req, res) => {
     const { query, params, body, headers } = req;
-    res.status(200).json({ query, params, body, headers });
+    res.send({ query, params, body, headers });
 })
 app.post("/", async (req, res) => {
     const { query, params, body, headers } = req;
@@ -48,7 +48,7 @@ app.delete("/", async (req, res) => {
 
 app.get("/api", async (req, res) => {
     const { query, params, body, headers } = req;
-    res.status(200).json({ query, params, body, headers });
+    res.send({ query, params, body, headers });
 })
 
 app.get("/api/error", async (req, res) => {
@@ -61,6 +61,9 @@ app.get("/api/error2", (req, res) => {
             reject(new ServerError(403, "Forbidden is the result"));
         }, 1000)
     });
+})
+app.get("/api/text", (req, res) => {
+   res.send("Hello from this api")
 })
 
 app.get("/api/error3", async (req, res) => {

@@ -126,9 +126,21 @@ export default class AppServer {
             this.end();
         };
         newResponse.send = function (data) {
-            data = data.toString();
-            this.writeHead(this.statusCode, { "Content-Type": "text/html" });
-            this.write(data);
+            let dataStr = "";
+            if (typeof data == "object") {
+                try {
+                    dataStr = JSON.stringify(data, null, 2);
+                    this.writeHead(this.statusCode, { "Content-Type": "application/json" });
+                }
+                catch (e) {
+                    throw new ServerError(400, e?.message);
+                }
+            }
+            else {
+                dataStr = data.toString();
+                this.writeHead(this.statusCode, { "Content-Type": "text/html" });
+            }
+            this.write(dataStr);
             this.end();
         };
         newResponse.json = function (obj) {
@@ -176,7 +188,7 @@ export default class AppServer {
      */
     listen(port = 8888, cb, opts) {
         this.port = port;
-        const basicOptions = { hostname: "localhost" };
+        const basicOptions = { hostname: "::" };
         if (opts) {
             opts = { ...basicOptions, ...opts };
         }

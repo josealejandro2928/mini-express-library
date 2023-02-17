@@ -163,10 +163,20 @@ export default class AppServer {
       this.end();
     };
 
-    newResponse.send = function (data: string) {
-      data = data.toString();
-      this.writeHead(this.statusCode, { "Content-Type": "text/html" });
-      this.write(data);
+    newResponse.send = function (data: any) {
+      let dataStr = "";
+      if (typeof data == "object") {
+        try {
+          dataStr = JSON.stringify(data, null, 2);
+          this.writeHead(this.statusCode, { "Content-Type": "application/json" });
+        } catch (e: any) {
+          throw new ServerError(400, e?.message);
+        }
+      } else {
+        dataStr = data.toString();
+        this.writeHead(this.statusCode, { "Content-Type": "text/html" });
+      }
+      this.write(dataStr);
       this.end();
     };
 
@@ -225,7 +235,7 @@ export default class AppServer {
     opts?: ListenOptions
   ) {
     this.port = port;
-    const basicOptions: ListenOptions = { hostname: "localhost" };
+    const basicOptions: ListenOptions = { hostname: "::" };
     if (opts) {
       opts = { ...basicOptions, ...opts };
     } else {
