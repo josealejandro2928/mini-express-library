@@ -30,8 +30,14 @@ export class RoutesTrie {
         const params = {};
         const parts = route.split("/").filter(x => x != "");
         let pivot = this.tree;
+        let match = null;
         for (const part of parts) {
-            let match = null;
+            match = null;
+            if ("*" in pivot) {
+                match = "*";
+                pivot = pivot[match];
+                break;
+            }
             for (const key in pivot) {
                 if (key == "isFinal" || key == "cbs")
                     continue;
@@ -41,20 +47,21 @@ export class RoutesTrie {
                     match = key;
                     break;
                 }
-                else {
-                    if (key == part) {
-                        match = key;
-                        break;
-                    }
+                if (key == part) {
+                    match = key;
+                    break;
                 }
             }
             if (!match)
                 return [];
             pivot = pivot[match];
         }
-        if (!pivot.isFinal)
+        if (!pivot.isFinal && match !== "*")
             return [];
         req.params = params;
+        if (parts.length == 0 && pivot["*"]) {
+            return pivot["*"].cbs || [];
+        }
         return pivot.cbs;
     }
 }

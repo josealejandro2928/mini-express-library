@@ -24,6 +24,7 @@ for (let i = 0; i < 500; i++) {
     })
 }
 /////////////////////////////
+
 app.get("/", async (req, res) => {
     const { query, params, body, headers } = req;
     res.status(200).json({ query, params, body, headers });
@@ -67,7 +68,6 @@ app.get("/api/error3", async (req, res) => {
 })
 
 app.use("/api/user", userRouter);
-
 // //////////////////////////// RENDER WEB PAGE //////////////////////////
 // //////////////////Configuring the static route//////////////////////
 
@@ -85,6 +85,9 @@ app.get("/api/web/:page/", (req, res, next) => {
         }
     })
 })
+app.get("/api/web/:page/*", (_, res) => {
+    res.status(200).json({ msg: "Find another page" })
+});
 // ///////////////////////////////////////////////////////////////////////////////
 
 app.setErrorHandler((req, res, error) => {

@@ -35,11 +35,17 @@ export class RoutesTrie {
   }
 
   get(route: string, req: IRequest): IMiddleware[] {
-    const params: { [key: string]: string } = {}
+    const params: { [key: string]: string } = {};
     const parts = route.split("/").filter(x => x != "");
     let pivot: RoutesTrieTree = this.tree;
+    let match: string | null = null;
     for (const part of parts) {
-      let match: string | null = null;
+      match = null;
+      if ("*" in pivot) {
+        match = "*";
+        pivot = pivot[match];
+        break;
+      }
       for (const key in pivot) {
         if (key == "isFinal" || key == "cbs") continue;
         if (key.startsWith(":")) {
@@ -47,18 +53,21 @@ export class RoutesTrie {
           params[param] = part;
           match = key;
           break;
-        } else {
-          if (key == part) {
-            match = key;
-            break;
-          }
+        }
+        if (key == part) {
+          match = key;
+          break;
         }
       }
       if (!match) return [];
       pivot = pivot[match];
     }
-    if (!pivot.isFinal) return [];
+    if (!pivot.isFinal && match !== "*") return [];
     req.params = params;
+
+    if (parts.length == 0 && pivot["*"]) {
+      return pivot["*"].cbs || [];
+    }
     return pivot.cbs as IMiddleware[];
   }
 }
