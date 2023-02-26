@@ -484,14 +484,14 @@ class AppServer {
         this.staticRouteMap[route] = pathToStaticDir;
     }
     getStaticMiddleware() {
-        return (req, res, next) => {
-            var _a;
+        return (req, res, next) => __awaiter(this, void 0, void 0, function* () {
             const pathName = req.pathName;
             const staticFolder = req.__DIR_STATIC_REFERENCED;
             const route = req.__ROUTE_STATIC_REFERENCED;
             try {
-                const segmentPath = (_a = pathName.split(route)) === null || _a === void 0 ? void 0 : _a[1].trim();
-                const fullPath = path.join(staticFolder, segmentPath);
+                // const segmentPath = pathName.split(route)?.[1].trim();
+                const segmentPath = pathName.substring(route.length);
+                let fullPath = path.join(staticFolder, segmentPath);
                 fs.stat(fullPath, (error, stats) => {
                     if (error) {
                         const serverError = new models_class_1.ServerError(404, error.message, [error]);
@@ -499,9 +499,14 @@ class AppServer {
                         return;
                     }
                     if (stats.isDirectory()) {
-                        const serverError = new models_class_1.ServerError(404, "Not allowed directories files", [error]);
-                        this.errorHandler(req, res, serverError);
-                        return;
+                        const files = fs.readdirSync(fullPath) || [];
+                        const indexFile = files.find(f => f.startsWith("index."));
+                        if (!indexFile) {
+                            const serverError = new models_class_1.ServerError(404, "Not allowed directories files", [error]);
+                            this.errorHandler(req, res, serverError);
+                            return;
+                        }
+                        fullPath = path.join(fullPath, indexFile);
                     }
                     const readStream = fs.createReadStream(fullPath);
                     readStream.pipe(res);
@@ -526,7 +531,7 @@ class AppServer {
                 console.log("Error here");
                 next(e);
             }
-        };
+        });
     }
 }
 exports.default = AppServer;

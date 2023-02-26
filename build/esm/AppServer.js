@@ -473,13 +473,14 @@ export default class AppServer {
         this.staticRouteMap[route] = pathToStaticDir;
     }
     getStaticMiddleware() {
-        return (req, res, next) => {
+        return async (req, res, next) => {
             const pathName = req.pathName;
             const staticFolder = req.__DIR_STATIC_REFERENCED;
             const route = req.__ROUTE_STATIC_REFERENCED;
             try {
-                const segmentPath = pathName.split(route)?.[1].trim();
-                const fullPath = path.join(staticFolder, segmentPath);
+                // const segmentPath = pathName.split(route)?.[1].trim();
+                const segmentPath = pathName.substring(route.length);
+                let fullPath = path.join(staticFolder, segmentPath);
                 fs.stat(fullPath, (error, stats) => {
                     if (error) {
                         const serverError = new ServerError(404, error.message, [error]);
@@ -487,9 +488,14 @@ export default class AppServer {
                         return;
                     }
                     if (stats.isDirectory()) {
-                        const serverError = new ServerError(404, "Not allowed directories files", [error]);
-                        this.errorHandler(req, res, serverError);
-                        return;
+                        const files = fs.readdirSync(fullPath) || [];
+                        const indexFile = files.find(f => f.startsWith("index."));
+                        if (!indexFile) {
+                            const serverError = new ServerError(404, "Not allowed directories files", [error]);
+                            this.errorHandler(req, res, serverError);
+                            return;
+                        }
+                        fullPath = path.join(fullPath, indexFile);
                     }
                     const readStream = fs.createReadStream(fullPath);
                     readStream.pipe(res);
