@@ -29,6 +29,10 @@ import {
 import { RoutesTrie } from "./RoutesTrie";
 import { AddressInfo } from "node:net";
 import Router from "./Router";
+import { promisify } from "node:util";
+const statPromisified = promisify(fs.stat);
+const readdirPromisified = promisify(fs.readdir);
+
 const mime = require("mime-types");
 
 export default class AppServer {
@@ -536,49 +540,43 @@ const app: AppServer = new AppServer();
       const staticFolder: string = (req as any).__DIR_STATIC_REFERENCED;
       const route: string = (req as any).__ROUTE_STATIC_REFERENCED;
       try {
-        // const segmentPath = pathName.split(route)?.[1].trim();
         const segmentPath = pathName.substring(route.length);
         let fullPath = path.join(staticFolder, segmentPath);
-        fs.stat(fullPath, (error, stats) => {
-          if (error) {
-            const serverError = new ServerError(404, error.message, [error]);
-            this.errorHandler(req, res, serverError);
-            return;
+        let stats = await statPromisified(fullPath);
+
+        if (stats.isDirectory()) {
+          const files: string[] = (await readdirPromisified(fullPath)) || [];
+          const indexFile = files.find(f => f.startsWith("index."));
+          if (!indexFile) {
+            throw new ServerError(404, "Not allowed directories files");
           }
-          if (stats.isDirectory()) {
-            const files: string[] = fs.readdirSync(fullPath) || [];
-            const indexFile = files.find(f => f.startsWith("index."));
-            if (!indexFile) {
-              const serverError = new ServerError(404, "Not allowed directories files", [error]);
-              this.errorHandler(req, res, serverError);
-              return;
-            }
-            fullPath = path.join(fullPath, indexFile);
-          }
+          fullPath = path.join(fullPath, indexFile);
+          stats = await statPromisified(fullPath);
+        }
+        const readStream = fs.createReadStream(fullPath);
+        readStream.pipe(res);
 
-          const readStream = fs.createReadStream(fullPath);
-          readStream.pipe(res);
+        const errorHandling = (error: any) => {
+          const serverError = new ServerError(404, error.message, []);
+          this.errorHandler(req, res, serverError);
+        };
 
-          const errorHandling = (error: any) => {
-            const serverError = new ServerError(404, error.message, [error]);
-            this.errorHandler(req, res, serverError);
-          };
-
-          readStream.once("ready", () => {
-            res.writeHead(200, {
-              "Content-Type": mime.contentType(path.extname(fullPath)),
-              "Content-Length": stats.size,
-            });
-          });
-
-          readStream.once("error", errorHandling);
-          readStream.once("end", () => {
-            readStream.removeListener("error", errorHandling);
-            res.end();
+        readStream.once("ready", () => {
+          res.writeHead(200, {
+            "Content-Type": mime.contentType(path.extname(fullPath)),
+            "Content-Length": stats.size,
           });
         });
-      } catch (e) {
-        console.log("Error here");
+
+        readStream.once("error", errorHandling);
+        readStream.once("end", () => {
+          readStream.removeListener("error", errorHandling);
+          res.end();
+        });
+      } catch (e: any) {
+        if (e?.code == "ENOENT") {
+          e.code = 404;
+        }
         (next as any)(e);
       }
     };

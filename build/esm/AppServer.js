@@ -8,6 +8,9 @@ import * as path from "node:path";
 import { ServerError, } from "./models.class";
 import { RoutesTrie } from "./RoutesTrie";
 import Router from "./Router";
+import { promisify } from "node:util";
+const statPromisified = promisify(fs.stat);
+const readdirPromisified = promisify(fs.readdir);
 const mime = require("mime-types");
 export default class AppServer {
     httpServer = null;
@@ -478,46 +481,40 @@ export default class AppServer {
             const staticFolder = req.__DIR_STATIC_REFERENCED;
             const route = req.__ROUTE_STATIC_REFERENCED;
             try {
-                // const segmentPath = pathName.split(route)?.[1].trim();
                 const segmentPath = pathName.substring(route.length);
                 let fullPath = path.join(staticFolder, segmentPath);
-                fs.stat(fullPath, (error, stats) => {
-                    if (error) {
-                        const serverError = new ServerError(404, error.message, [error]);
-                        this.errorHandler(req, res, serverError);
-                        return;
+                let stats = await statPromisified(fullPath);
+                if (stats.isDirectory()) {
+                    const files = (await readdirPromisified(fullPath)) || [];
+                    const indexFile = files.find(f => f.startsWith("index."));
+                    if (!indexFile) {
+                        throw new ServerError(404, "Not allowed directories files");
                     }
-                    if (stats.isDirectory()) {
-                        const files = fs.readdirSync(fullPath) || [];
-                        const indexFile = files.find(f => f.startsWith("index."));
-                        if (!indexFile) {
-                            const serverError = new ServerError(404, "Not allowed directories files", [error]);
-                            this.errorHandler(req, res, serverError);
-                            return;
-                        }
-                        fullPath = path.join(fullPath, indexFile);
-                    }
-                    const readStream = fs.createReadStream(fullPath);
-                    readStream.pipe(res);
-                    const errorHandling = (error) => {
-                        const serverError = new ServerError(404, error.message, [error]);
-                        this.errorHandler(req, res, serverError);
-                    };
-                    readStream.once("ready", () => {
-                        res.writeHead(200, {
-                            "Content-Type": mime.contentType(path.extname(fullPath)),
-                            "Content-Length": stats.size,
-                        });
+                    fullPath = path.join(fullPath, indexFile);
+                    stats = await statPromisified(fullPath);
+                }
+                const readStream = fs.createReadStream(fullPath);
+                readStream.pipe(res);
+                const errorHandling = (error) => {
+                    const serverError = new ServerError(404, error.message, []);
+                    this.errorHandler(req, res, serverError);
+                };
+                readStream.once("ready", () => {
+                    res.writeHead(200, {
+                        "Content-Type": mime.contentType(path.extname(fullPath)),
+                        "Content-Length": stats.size,
                     });
-                    readStream.once("error", errorHandling);
-                    readStream.once("end", () => {
-                        readStream.removeListener("error", errorHandling);
-                        res.end();
-                    });
+                });
+                readStream.once("error", errorHandling);
+                readStream.once("end", () => {
+                    readStream.removeListener("error", errorHandling);
+                    res.end();
                 });
             }
             catch (e) {
-                console.log("Error here");
+                if (e?.code == "ENOENT") {
+                    e.code = 404;
+                }
                 next(e);
             }
         };
